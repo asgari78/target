@@ -1,5 +1,7 @@
 export type PaymentMode = 'cash' | 'installment';
 export type RegistrationType = 'in_person' | 'online';
+export type AttendanceType = 'In-person' | 'Online';
+export type PaymentMethod = 'Cash' | 'Installment';
 
 export interface Instructor {
   id: string;
@@ -9,24 +11,46 @@ export interface Instructor {
 
 export interface Course {
   id: string;
-  slug: string;
   title: string;
-  description: string;
-  grade: 'چهارم' | 'پنجم' | 'ششم';
-  instructor: Instructor;
+  instructorName: string;
   sessionsCount: number;
-  sessionHours: number;
-  schedule: string;
-  startDate: string | null;
+  sessionDuration: number;
+  locationInPerson: string | null;
+  locationOnline: string | null;
   priceInPerson: number;
   priceOnline: number;
-  installmentsCount: 4 | 6;
-  installmentInterestPct: number;
-  coverImage: string;
+  installmentSurchargePercent: number;
+  installmentMonths: 4 | 6;
+  description: string | null;
+  courseImageUrl: string | null;
+  instructorImageUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface CourseRow {
+  id: string;
+  title: string;
+  instructor_name: string;
+  sessions_count: number;
+  session_duration: number;
+  location_in_person: string | null;
+  location_online: string | null;
+  price_in_person: number;
+  price_online: number;
+  installment_surcharge_percent: number;
+  installment_months: number;
+  description: string | null;
+  course_image_url: string | null;
+  instructor_image_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface Installment {
-  label: string;   // «پیش‌پرداخت» | «یک ماه بعد از ثبت‌نام» | ...
+  label: string;
   amount: number;
 }
 
@@ -36,10 +60,20 @@ export interface InstallmentPlan {
   items: Installment[];
 }
 
-/** payload ثبت‌نام — snake_case مطابق دیتابیس */
-export interface RegistrationRequestInsert {
-  course_id: string;
+export interface EnrollmentRequestInsert {
   phone_number: string;
-  registration_type: RegistrationType;
-  payment_mode: PaymentMode;
+  course_name: string;
+  instructor_name: string;
+  attendance_type: AttendanceType;
+  payment_method: PaymentMethod;
+}
+
+export interface EnrollmentRequestRow {
+  id: string;
+  phone_number: string;
+  course_name: string;
+  instructor_name: string;
+  attendance_type: AttendanceType;
+  payment_method: PaymentMethod;
+  created_at: string;
 }

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/src/lib/supabaseClient';
 import { cn } from '@/src/lib/utils';
-import type { Course, PaymentMode, RegistrationType } from '../../types';
+import type { Course, PaymentMode, RegistrationType } from '@/src/types';
 
 const phoneSchema = z.object({
   phone: z
@@ -37,15 +37,19 @@ export default function RegistrationForm({
     formState: { errors, isSubmitting },
   } = useForm<PhoneFormValues>({ resolver: zodResolver(phoneSchema) });
 
+  const attendanceType = registrationType === 'in_person' ? 'In-person' : 'Online';
+  const paymentMethod = paymentMode === 'cash' ? 'Cash' : 'Installment';
+
   const onSubmit = async (values: PhoneFormValues) => {
     setServerError(null);
     const { error } = await supabase
-      .from('registration_requests')
+      .from('enrollment_requests')
       .insert({
-        course_id: course.id,
         phone_number: values.phone,
-        registration_type: registrationType,
-        payment_mode: paymentMode,
+        course_name: course.title,
+        instructor_name: course.instructorName,
+        attendance_type: attendanceType,
+        payment_method: paymentMethod,
       });
 
     if (error) {
@@ -76,7 +80,7 @@ export default function RegistrationForm({
           placeholder="09xxxxxxxxx"
           className={cn(
             'w-full rounded-xl border bg-white px-4 py-3 text-center text-lg tracking-widest text-slate-900 outline-none transition',
-            'placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100',
+            'placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100',
             errors.phone ? 'border-red-400' : 'border-slate-300',
           )}
           {...register('phone')}
@@ -100,8 +104,8 @@ export default function RegistrationForm({
         type="submit"
         disabled={isSubmitting}
         className={cn(
-          'flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3',
-          'font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98]',
+          'flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3',
+          'font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]',
           'disabled:cursor-not-allowed disabled:opacity-60',
         )}
       >

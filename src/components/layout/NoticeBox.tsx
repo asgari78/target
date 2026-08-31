@@ -24,9 +24,9 @@ export default function NoticeBox() {
                   <MapPin className="h-5 w-5 text-amber-600" aria-hidden="true" />
                 </span>
                 <p className="mr-3 font-medium text-amber-800 text-sm sm:text-base">
-                  <span className="md:hidden">برگزاری دوره‌ها مختص شهر قم</span>
+                  <span className="md:hidden">برگزاری دوره‌های حضوری فقط در استان قم</span>
                   <span className="hidden md:inline">
-                    توجه: تمامی دوره‌های آموزشی موسسه تارگت در حال حاضر به صورت <strong>حضوری</strong> و منحصراً در <strong>استان قم</strong> برگزار می‌شوند.
+                    توجه: تمامی دوره‌های <strong>حضوری</strong> موسسه تارگت منحصراً در <strong>استان قم</strong> برگزار می‌شوند.
                   </span>
                 </p>
               </div>
