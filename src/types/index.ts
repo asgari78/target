@@ -1,52 +1,54 @@
 export type PaymentMode = 'cash' | 'installment';
 export type RegistrationType = 'in_person' | 'online';
-export type AttendanceType = 'In-person' | 'Online';
-export type PaymentMethod = 'Cash' | 'Installment';
-
-export interface Instructor {
-  id: string;
-  name: string;
-  imageUrl: string;
-}
 
 export interface Course {
   id: string;
+  slug: string;
   title: string;
+  description: string;
+  grade: 'چهارم' | 'پنجم' | 'ششم';
   instructorName: string;
+  instructorImageUrl: string | null;
+  coverImageUrl: string | null;
   sessionsCount: number;
-  sessionDuration: number;
-  locationInPerson: string | null;
-  locationOnline: string | null;
+  sessionHours: number;
+  scheduleText: string;
+  startDate: string | null;
+  locationInPerson: string;
+  locationOnline: string;
   priceInPerson: number;
   priceOnline: number;
-  installmentSurchargePercent: number;
-  installmentMonths: 4 | 6;
-  description: string | null;
-  courseImageUrl: string | null;
-  instructorImageUrl: string | null;
+  installmentsCount: number;
+  installmentInterestPct: number;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CourseRow {
   id: string;
+  slug: string;
   title: string;
+  description: string;
+  grade: 'چهارم' | 'پنجم' | 'ششم';
   instructor_name: string;
+  instructor_image_url: string | null;
+  cover_image_url: string | null;
   sessions_count: number;
-  session_duration: number;
-  location_in_person: string | null;
-  location_online: string | null;
+  session_hours: number;
+  schedule_text: string;
+  start_date: string | null;
+  location_in_person: string;
+  location_online: string;
   price_in_person: number;
   price_online: number;
-  installment_surcharge_percent: number;
-  installment_months: number;
-  description: string | null;
-  course_image_url: string | null;
-  instructor_image_url: string | null;
+  installments_count: number;
+  installment_interest_pct: number;
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Installment {
@@ -60,20 +62,19 @@ export interface InstallmentPlan {
   items: Installment[];
 }
 
-export interface EnrollmentRequestInsert {
+export interface RegistrationRequestInsert {
+  course_id: string;
   phone_number: string;
-  course_name: string;
-  instructor_name: string;
-  attendance_type: AttendanceType;
-  payment_method: PaymentMethod;
+  registration_type: RegistrationType;
+  payment_mode: PaymentMode;
 }
 
-export interface EnrollmentRequestRow {
+export interface RegistrationRequestRow {
   id: string;
+  course_id: string;
   phone_number: string;
-  course_name: string;
-  instructor_name: string;
-  attendance_type: AttendanceType;
-  payment_method: PaymentMethod;
+  registration_type: RegistrationType;
+  payment_mode: PaymentMode;
+  status: 'new' | 'contacted' | 'done' | 'rejected';
   created_at: string;
 }

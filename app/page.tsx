@@ -1,47 +1,128 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { motion } from 'framer-motion';
+import Header from '@/src/components/layout/Header';
 import NoticeBox from '@/src/components/layout/NoticeBox';
+import HeroSlider from '@/src/components/layout/HeroSlider';
+import AboutSection from '@/src/components/layout/AboutSection';
 import CourseList from '@/src/components/courses/CourseList';
 import RegistrationModal from '@/src/components/modal/RegistrationModal';
+import Footer from '@/src/components/layout/Footer';
+import BackgroundEffects from '@/src/components/layout/BackgroundEffects';
 import { fetchActiveCourses } from '@/src/lib/courses';
 import type { Course, RegistrationType } from '@/src/types';
 
-export default function HomePage() {
+function CoursesContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Course | null>(null);
-  const [regType, setRegType] = useState<RegistrationType>('in_person');
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [registrationType, setRegistrationType] = useState<RegistrationType>('in_person');
 
   useEffect(() => {
+    let mounted = true;
     fetchActiveCourses()
-      .then(setCourses)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (mounted) {
+          setCourses(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleRegister = (course: Course, type: RegistrationType) => {
-    setRegType(type);
-    setSelected(course);
+    setRegistrationType(type);
+    setSelectedCourse(course);
   };
 
-  return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6">
-      {/* نکته مهم — جمع‌وجور */}
-      <NoticeBox />
+  const handleCloseModal = () => {
+    setSelectedCourse(null);
+  };
 
-      {/* ۳ دوره بلافاصله بعد از لود دیده می‌شوند */}
+  if (error) {
+    return (
+      <section className="py-16 md:py-24 relative z-10" aria-labelledby="error-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="py-12"
+          >
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 id="error-heading" className="text-xl font-bold text-navy-900 mb-2">خطا در بارگذاری دوره‌ها</h3>
+            <p className="text-navy-500 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 bg-navy-600 hover:bg-navy-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+            >
+              تلاش مجدد
+            </button>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <NoticeBox />
+      <HeroSlider />
       <CourseList
         courses={courses}
         isLoading={loading}
-        onRegisterClick={(course, type) => handleRegister(course, type)}
+        onRegisterClick={handleRegister}
       />
-
+      <AboutSection />
       <RegistrationModal
-        course={selected}
-        registrationType={regType}
-        onClose={() => setSelected(null)}
+        course={selectedCourse}
+        registrationType={registrationType}
+        onClose={handleCloseModal}
       />
-    </main>
+      <Footer />
+    </>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <>
+      <NoticeBox />
+      <HeroSlider />
+      <AboutSection />
+      <CourseList
+        courses={[]}
+        isLoading={true}
+        onRegisterClick={() => {}}
+      />
+      <Footer />
+    </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="relative min-h-screen flex flex-col">
+      <BackgroundEffects />
+      <Header />
+      <main className="flex-1">
+        <Suspense fallback={<LoadingFallback />}>
+          <CoursesContent />
+        </Suspense>
+      </main>
+    </div>
   );
 }
