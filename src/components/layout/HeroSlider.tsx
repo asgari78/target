@@ -132,7 +132,7 @@ export default function HeroSlider({
             alt={slides[currentIndex].alt}
             fill
             priority
-            className="object-contain"
+            className="object-cover"
             sizes="100vw"
           />
 
