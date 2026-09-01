@@ -20,20 +20,17 @@ export default function Header() {
   }, []);
 
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 flex items-center right-0 z-50 transition-all duration-300',
-        isScrolled
-          ? 'backdrop-blur-md bg-white/90 shadow-[0_8px_30px_rgba(15,23,42,0.08)]'
-          : 'bg-transparent'
-      )}
-    >
-      <nav className="mx-auto w-full max-w-7xl" aria-label="منوی اصلی">
-        <div
-          className={cn(
-            'flex items-center justify-between rounded-2xl py-2 px-4 sm:px-5 sm:py-2 transition-all duration-300'
-          )}
-        >
+<header
+  className={cn(
+    'fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 bg-white',
+    isScrolled
+      ? 'backdrop-blur-md bg-white/90 shadow-[0_8px_30px_rgba(15,23,42,0.08)]'
+      : 'bg-white'
+  )}
+>  
+<nav className="mx-auto w-full max-w-300" aria-label="منوی اصلی">
+    <div className="flex items-center justify-between px-4 py-2 sm:px-5 sm:py- ...
+ transition-all duration-300">
           <Link
             href="/"
             className="flex items-center gap-3 text-slate-900"
@@ -41,11 +38,10 @@ export default function Header() {
           >
             <span className="flex flex-col leading-none">
               <span
+              id='logoTxt'
                 className={cn(`text-[1.3rem] md:text-[1.45rem] font-normal tracking-normal `,
-                  isScrolled ? `text-slate-950` :
-                  `text-white/80`
+                  `text-slate-950`
                 )}
-                style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               >
                 تارگت
               </span>
@@ -63,11 +59,11 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium  transition-colors hover:bg-amber-200/10 ${isScrolled ? "hover:text-amber-900" : "hover:text-white"}`,
-                isScrolled ? `text-amber-700/70` : `text-white/70`
+                className={cn(`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium  transition-colors hover:bg-white/60 bg-white/30`,
+                `text-slate-900`
                 )}
               >
-                <Info className={cn(`h-4 w-4 ${isScrolled ? 'text-amber-700/70' : 'text-white/70'}`)} />
+                <Info className="h-4 w-4 text-slate-900" />
                 {item.label}
               </Link>
             ))}
@@ -161,7 +157,7 @@ export default function Header() {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-4 py-4 text-base font-medium text-slate-800 transition-colors hover:bg-slate-100"
                     >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/10 text-slate-600">
                         <Info className="h-4 w-4" aria-hidden="true" />
                       </span>
                       {item.label}

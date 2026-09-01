@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'Samim';
+  font-family: Samim;
   src: url('/fonts/Samim.woff2') format('woff2'),
        url('/fonts/Samim.woff') format('woff'),
        url('/fonts/Samin.ttf') format('ttf'),
@@ -12,12 +12,18 @@
 }
 
 @font-face {
-  font-family: 'DigiLalezarPlus';
-  src: url('/fonts/DigiLalezarPlus.ttf') format('ttf'),
-       url('/fonts/DigiLalezarPlus.eot') format('eot');
-  font-weight: 300;
-  font-display: swap;
+  font-family: "DigiLalezarPlus";
+  src: url('/fonts/DigiLalezarPlus.ttf') format('truetype'),
+       url('/fonts/DigiLalezarPlus.eot') format('embedded-opentype');
+}
+
+@font-face {
+  font-family: "digiShohrehbold";
+  src: url("/fonts/digiShohrehbold.ttf") format("truetype"),
+       url("/fonts/digiShohrehbold.eot") format("embedded-opentype");
+  font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 :root {
@@ -116,4 +122,8 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+#logoTxt{
+  font-family: digiShohrehbold;
 }
