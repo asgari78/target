@@ -239,7 +239,7 @@ export default function HeroSlider({
 
   return (
     <section
-      className={cn('relative mt-14 w-full overflow-hidden bg-white', className)}
+      className={cn('relative mt-0 w-full overflow-hidden bg-white', className)}
       aria-label="اسلایدر هیرو"
       tabIndex={0}
       onKeyDown={handleKeyDown}

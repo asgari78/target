@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Clock, Users, Sparkles, MapPin, Monitor, CreditCard } from 'lucide-react';
+import { ArrowLeft, BadgePercent } from 'lucide-react';
 import { Course } from '@/src/types';
-import { formatPrice, formatDuration, calculateInstallment, getBasePrice } from '@/src/lib/utils';
+import { calculateInstallment, formatPrice, getBasePrice } from '@/src/lib/utils';
 
 interface CourseRowProps {
   course: Course;
@@ -13,126 +13,81 @@ interface CourseRowProps {
 }
 
 export default function CourseRow({ course, index, onRegisterClick }: CourseRowProps) {
-  const inPersonPrice = getBasePrice(course, 'in_person');
-  const installmentMonths = course.installmentsCount;
-  const interestPct = course.installmentInterestPct;
-
-  const inPersonPlan = calculateInstallment(inPersonPrice, installmentMonths, interestPct);
+  const basePrice = getBasePrice(course, 'in_person');
+  const installmentPlan = calculateInstallment(
+    basePrice,
+    course.installmentsCount,
+    course.installmentInterestPct,
+  );
 
   return (
     <motion.li
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease: 'easeOut' }}
-      className="group relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 sm:p-6 bg-white rounded-2xl border border-navy-100 shadow-sm hover:shadow-lg hover:border-navy-200 transition-all duration-300"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: index * 0.06, ease: 'easeOut' }}
+      className="group h-full"
     >
-      <div className="relative flex-shrink-0 w-full sm:w-[140px] h-[100px] sm:h-[110px] rounded-xl overflow-hidden bg-navy-50">
-        {course.coverImageUrl ? (
-          <Image
-            src={course.coverImageUrl}
-            alt={course.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
-            sizes="(max-width: 640px) 100vw, 140px"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-navy-100 to-navy-200">
-            <Sparkles className="h-10 w-10 text-navy-300" aria-hidden="true" />
-          </div>
-        )}
-        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm text-navy-700 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
-          <Sparkles className="h-3.5 w-3.5 text-gold-500" aria-hidden="true" />
-          <span>{course.sessionsCount} جلسه</span>
-        </div>
-      </div>
-
-      <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex-1 min-w-0 space-y-2">
-          <h3 className="text-lg sm:text-xl font-bold text-navy-900 truncate" title={course.title}>
-            {course.title}
-          </h3>
-
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-navy-600">
-            <div className="flex items-center gap-1.5 bg-navy-50 px-3 py-1.5 rounded-xl">
-              <Users className="h-4 w-4 text-navy-500" aria-hidden="true" />
-              <span className="font-medium">استاد: {course.instructorName}</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-navy-50 px-3 py-1.5 rounded-xl">
-              <Clock className="h-4 w-4 text-navy-500" aria-hidden="true" />
-              <span>{formatDuration(course.sessionHours)} در جلسه</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-navy-50 px-3 py-1.5 rounded-xl">
-              <MapPin className="h-4 w-4 text-navy-500" aria-hidden="true" />
-              <span className="truncate max-w-[200px]">{course.locationInPerson}</span>
-            </div>
-            {course.startDate && (
-              <div className="flex items-center gap-1.5 bg-navy-50 px-3 py-1.5 rounded-xl">
-                <Clock className="h-4 w-4 text-navy-500" aria-hidden="true" />
-                <span>شروع: {new Date(course.startDate).toLocaleDateString('fa-IR')}</span>
-              </div>
-            )}
-          </div>
-
-          {course.description && (
-            <p className="text-sm text-navy-500 line-clamp-2 sm:line-clamp-3 hidden md:block">
-              {course.description}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <div className="flex items-center justify-between w-full sm:w-auto px-4 py-2.5 rounded-xl bg-navy-50 border border-navy-100">
-              <span className="text-sm font-medium text-navy-600">نقدی (حضوری):</span>
-              <span className="text-lg font-bold text-navy-900 fa-nums">{formatPrice(inPersonPrice)}</span>
-            </div>
-            <div className="flex items-center justify-between w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gold-50/50 border border-gold-100/50">
-              <div className="flex items-center gap-1.5 text-sm text-gold-700 font-medium">
-                <CreditCard className="h-4 w-4" aria-hidden="true" />
-                <span>اقساط ({installmentMonths} مرحله):</span>
-              </div>
-              <span className="text-gold-700 font-bold fa-nums">
-                {formatPrice(inPersonPlan.perInstallment)} <span className="text-[11px] font-normal opacity-80">/ قسط</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onRegisterClick(course, 'in_person')}
-              className="flex-1 flex items-center justify-center gap-2 bg-navy-600 hover:bg-navy-700 text-white py-3 px-4 rounded-xl font-bold text-sm transition-colors shadow-lg shadow-navy-200/50"
-            >
-              <MapPin className="h-4 w-4" aria-hidden="true" />
-              <span>حضوری</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onRegisterClick(course, 'online')}
-              className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-xl font-bold text-sm transition-colors shadow-lg shadow-emerald-200/50"
-            >
-              <Monitor className="h-4 w-4" aria-hidden="true" />
-              <span>آنلاین</span>
-            </motion.button>
-          </div>
-        </div>
-      </div>
-
-      {course.instructorImageUrl && (
-        <div className="flex-shrink-0 w-[60px] h-[60px] sm:w-[70px] sm:h-[70px] ml-auto">
-          <div className="relative w-full h-full rounded-full overflow-hidden ring-2 ring-navy-100 bg-navy-50">
+      <button
+        type="button"
+        onClick={() => onRegisterClick(course, 'in_person')}
+        className="flex h-full w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-right shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-300"
+      >
+        {/* Image */}
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+          {course.coverImageUrl ? (
             <Image
-              src={course.instructorImageUrl}
-              alt={course.instructorName}
+              src={course.coverImageUrl}
+              alt={course.title}
               fill
-              className="object-cover"
-              sizes="70px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
             />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+              <span className="text-sm font-medium text-slate-500">بدون تصویر</span>
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col p-4 sm:p-5">
+          <div className="flex flex-1 flex-col gap-4">
+            <h3 className="text-base font-bold leading-7 text-slate-900 transition-colors group-hover:text-indigo-700 sm:text-lg">
+              {course.title}
+            </h3>
+
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 shadow-sm">
+              <BadgePercent className="h-3.5 w-3.5" />
+              <span>امکان خرید قسطی!</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-sm text-slate-600">قیمت اقساط:</span>
+                <span className="text-sm font-bold text-slate-900 fa-nums">
+                  {formatPrice(installmentPlan.total)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-sm text-slate-600">قیمت نقدی با تخفیف:</span>
+                <span className="text-sm font-bold text-slate-900 fa-nums">
+                  {formatPrice(basePrice)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <span className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 group-hover:from-indigo-700 group-hover:to-indigo-800 group-hover:shadow-lg">
+              <span>مشاهده</span>
+              <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+            </span>
           </div>
         </div>
-      )}
+      </button>
     </motion.li>
   );
 }
