@@ -27,7 +27,7 @@ export default function NoticeBox({
           aria-live="polite"
           dir="rtl"
           initial={{ opacity: 0, y: -80, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          animate={{ opacity: 1, y: 10, scale: 1 }}
           exit={{ opacity: 0, y: -80, scale: 0.96, transition: { duration: 0.22, ease: 'easeIn' } }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
           className={`fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 ${className}`}

@@ -24,7 +24,7 @@ export default function Header() {
   className={cn(
     'fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 bg-white',
     isScrolled
-      ? 'backdrop-blur-md bg-white/90 shadow-[0_8px_30px_rgba(15,23,42,0.08)]'
+      ? 'backdrop-blur-2xl bg-white/60 shadow-[0_8px_30px_rgba(15,23,42,0.08)]'
       : 'bg-white'
   )}
 >  
@@ -36,19 +36,19 @@ export default function Header() {
             className="flex items-center gap-3 text-slate-900"
             aria-label="صفحه اصلی تارگت"
           >
-            <span className="flex flex-col leading-none">
+            <span className="flex flex-col items-center leading-none">
               <span
               id='logoTxt'
-                className={cn(`text-[1.3rem] md:text-[1.45rem] font-normal tracking-normal `,
+                className={cn(`text-[1.3rem] md:text-[1.45rem] font-normal tracking-normal mb-0.5 `,
                   `text-slate-950`
                 )}
               >
                 تارگت
               </span>
-              <span className="mt-1 text-[0.45rem] font-medium uppercase tracking-[0.7em] text-slate-500">
+              <span className="mt-1 text-[0.6rem] font-medium uppercase tracking-[0.7em] text-slate-500">
                 target
               </span>
-              <span className="mt-0 text-[0.4rem] font-medium uppercase tracking-[0.6em] text-slate-500">
+              <span className="-mt-0.75 text-[0.5rem] font-medium uppercase tracking-[0.6em] text-slate-500">
                 academy
               </span>
             </span>

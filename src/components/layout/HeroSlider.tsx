@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, TouchEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
@@ -47,6 +48,8 @@ interface HeroSliderProps {
   autoPlayInterval?: number;
 }
 
+const SLIDE_ANIMATION_DURATION = 450;
+
 function SlideMedia({
   slide,
   priority,
@@ -55,18 +58,18 @@ function SlideMedia({
   priority: boolean;
 }) {
   return (
-    <picture className="block w-full">
+    <picture className="flex h-full w-full items-center justify-center">
       {slide.mobileImage ? (
         <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
       ) : null}
+
       <img
         src={slide.image}
         alt={slide.alt}
         loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : 'auto'}
         decoding="async"
         draggable={false}
-        className="block h-auto w-full select-none"
+        className="block h-full w-full select-none object-contain"
       />
     </picture>
   );
@@ -79,68 +82,118 @@ export default function HeroSlider({
 }: HeroSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
-  const currentSlide = slides[currentIndex];
+  const animationTimeoutRef = useRef<number | null>(null);
+  const isAnimatingRef = useRef(false);
+
+
+  useEffect(() => {
+    if (slides.length === 0) return;
+
+    setCurrentIndex((prev) => prev % slides.length);
+  }, [slides.length]);
+useEffect(() => {
+  return () => {
+    if (animationTimeoutRef.current !== null) {
+      window.clearTimeout(animationTimeoutRef.current);
+    }
+  };
+}, []);
+
+  const triggerTransition = useCallback(
+    (updater: () => void) => {
+      if (isAnimatingRef.current || slides.length <= 1) return;
+
+      isAnimatingRef.current = true;
+      setIsAnimating(true);
+      updater();
+
+      if (animationTimeoutRef.current !== null) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+
+      animationTimeoutRef.current = window.setTimeout(() => {
+        isAnimatingRef.current = false;
+        setIsAnimating(false);
+      }, SLIDE_ANIMATION_DURATION);
+    },
+    [slides.length]
+  );
 
   const nextSlide = useCallback(() => {
-    if (isAnimating || slides.length <= 1) return;
-    setIsAnimating(true);
-    setCurrentIndex((prev) => (prev + 1) % slides.length);
-    window.setTimeout(() => setIsAnimating(false), 450);
-  }, [isAnimating, slides.length]);
+    triggerTransition(() => {
+      setCurrentIndex((prev) => (prev + 1) % slides.length);
+    });
+  }, [slides.length, triggerTransition]);
 
   const prevSlide = useCallback(() => {
-    if (isAnimating || slides.length <= 1) return;
-    setIsAnimating(true);
-    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
-    window.setTimeout(() => setIsAnimating(false), 450);
-  }, [isAnimating, slides.length]);
+    triggerTransition(() => {
+      setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
+    });
+  }, [slides.length, triggerTransition]);
 
   const goToSlide = useCallback(
     (index: number) => {
-      if (isAnimating || index === currentIndex) return;
-      setIsAnimating(true);
-      setCurrentIndex(index);
-      window.setTimeout(() => setIsAnimating(false), 450);
+      if (index === currentIndex) return;
+
+      triggerTransition(() => {
+        setCurrentIndex(index);
+      });
     },
-    [isAnimating, currentIndex]
+    [currentIndex, triggerTransition]
   );
 
   useEffect(() => {
     if (!autoPlay || slides.length <= 1) return;
-    const interval = window.setInterval(nextSlide, autoPlayInterval);
+
+    const interval = window.setInterval(() => {
+      nextSlide();
+    }, autoPlayInterval);
+
     return () => window.clearInterval(interval);
   }, [autoPlay, autoPlayInterval, nextSlide, slides.length]);
 
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchStart(e.touches[0].clientX);
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    setTouchStartX(e.touches[0]?.clientX ?? null);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStart === null) return;
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null) return;
 
-    const touchEnd = e.changedTouches[0].clientX;
-    const diff = touchStart - touchEnd;
+    const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX;
+    const diff = touchStartX - touchEndX;
 
     if (Math.abs(diff) > 50) {
-      if (diff > 0) nextSlide();
-      else prevSlide();
+      if (diff > 0) {
+        nextSlide();
+      } else {
+        prevSlide();
+      }
     }
 
-    setTouchStart(null);
+    setTouchStartX(null);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'ArrowRight') nextSlide();
-    if (e.key === 'ArrowLeft') prevSlide();
+  const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      nextSlide();
+    }
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      prevSlide();
+    }
   };
 
-  if (!slides.length) return null;
+  if (slides.length === 0) return null;
+
+  const currentSlide = slides[currentIndex];
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-white mt-14"
+      className="relative mt-14 w-full overflow-hidden bg-white"
       aria-label="اسلایدر هیرو"
       tabIndex={0}
       onKeyDown={handleKeyDown}
@@ -148,51 +201,69 @@ export default function HeroSlider({
       onTouchEnd={handleTouchEnd}
       style={{ touchAction: 'pan-y' }}
     >
-      <div className="relative mx-auto w-full max-w-[1584px]">
-        <AnimatePresence mode="wait">
+      <div className="relative mx-auto h-100 w-full">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={currentSlide.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: 'easeInOut' }}
-            className="relative w-full"
+            className="absolute inset-0"
           >
-            <SlideMedia slide={currentSlide} priority={currentIndex === 0} />
-            {(currentSlide.title || currentSlide.subtitle) && (
-              <div className="absolute inset-0 z-[3] flex items-center">
-                <div className="mx-auto w-full max-w-[1584px] px-4 sm:px-6 lg:px-10">
-                  <div className="max-w-3xl text-right">
-                    {currentSlide.title && (
-                      <motion.h1
-                        initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-                        className="mb-3 text-2xl font-bold leading-tight text-white drop-shadow-md sm:text-4xl lg:text-5xl"
-                      >
-                        {currentSlide.title}
-                      </motion.h1>
-                    )}
+            <div className="relative flex h-full w-full items-center justify-center">
+              <SlideMedia
+                slide={currentSlide}
+                priority={currentIndex === 0}
+              />
 
-                    {currentSlide.subtitle && (
-                      <motion.p
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45, delay: 0.2, ease: 'easeOut' }}
-                        className="max-w-2xl text-sm leading-7 text-white/95 drop-shadow-md sm:text-lg lg:text-xl"
-                      >
-                        {currentSlide.subtitle}
-                      </motion.p>
-                    )}
+              {(currentSlide.title || currentSlide.subtitle) && (
+                <>
+
+                  <div className="absolute inset-0 z-[3] justify-center flex items-center">
+                    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10">
+                      <div className="w-full text-center">
+                        {currentSlide.title ? (
+                          <motion.h1
+                            initial={{ opacity: 0, y: 18,x:0 }}
+                            animate={{ opacity: 1, y: 0,x:120 }}
+                            transition={{
+                              duration: 0.45,
+                              delay: 0.1,
+                              ease: 'easeOut',
+                            }}
+                            className="mb-3 text-lg text-center font-bold leading-tight text-slate-800 drop-shadow-md sm:text-3xl lg:text-4xl"
+                          >
+                            {currentSlide.title}
+                          </motion.h1>
+                        ) : null}
+
+                        {currentSlide.subtitle ? (
+                          <motion.p
+                            initial={{ opacity: 0, y: 10,x:20 }}
+                            animate={{ opacity: 1, y: 0,x:120 }}
+                            transition={{
+                              duration: 0.45,
+                              delay: 0.2,
+                              ease: 'easeOut',
+                            }}
+                            className="w-full text-center text-sm leading-7 text-slate-600 drop-shadow-md sm:text-sm lg:text-xl"
+                          >
+                            {currentSlide.subtitle}
+                          </motion.p>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
       <button
+        type="button"
         onClick={prevSlide}
         disabled={isAnimating || slides.length <= 1}
         className={cn(
@@ -205,6 +276,7 @@ export default function HeroSlider({
       </button>
 
       <button
+        type="button"
         onClick={nextSlide}
         disabled={isAnimating || slides.length <= 1}
         className={cn(
@@ -225,6 +297,7 @@ export default function HeroSlider({
           {slides.map((slide, index) => (
             <button
               key={slide.id}
+              type="button"
               onClick={() => goToSlide(index)}
               disabled={isAnimating}
               role="tab"
