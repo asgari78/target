@@ -38,6 +38,8 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-Samim)', 'system-ui', 'sans-serif'],
         Samim: ['var(--font-Samim)', 'system-ui', 'sans-serif'],
+        'digi-lalezar': ['DigiLalezarPlus', 'sans-serif'],
+        'digi-shohreh': ['DigiShohrehBold', 'sans-serif'],
       },
       keyframes: {
         fadeIn: {
