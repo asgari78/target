@@ -12,6 +12,8 @@ import Footer from '@/src/components/layout/Footer';
 import BackgroundEffects from '@/src/components/layout/BackgroundEffects';
 import { fetchActiveCourses } from '@/src/lib/courses';
 import type { Course, RegistrationType } from '@/src/types';
+import StatsSection from '@/src/components/layout/StatsSection';
+import WhyTargetSection from '@/src/components/layout/WhyTargetSection';
 
 function CoursesContent() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -86,7 +88,9 @@ function CoursesContent() {
         isLoading={loading}
         onRegisterClick={handleRegister}
       />
+      <StatsSection />
       <AboutSection />
+      <WhyTargetSection/>
       <RegistrationModal
         course={selectedCourse}
         registrationType={registrationType}
@@ -102,7 +106,9 @@ function LoadingFallback() {
     <>
       <NoticeBox />
       <HeroSlider />
+      <StatsSection />
       <AboutSection />
+      <WhyTargetSection/>
       <CourseList
         courses={[]}
         isLoading={true}

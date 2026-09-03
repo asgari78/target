@@ -18,9 +18,9 @@
 }
 
 @font-face {
-  font-family: "digiShohrehbold";
-  src: url("/fonts/digiShohrehbold.ttf") format("truetype"),
-       url("/fonts/digiShohrehbold.eot") format("embedded-opentype");
+  font-family: "DigiCraftUltraBlack";
+  src: url("/fonts/DigiCraftUltraBlack.ttf") format("truetype"),
+       url("/fonts/DigiCraftUltraBlack.eot") format("embedded-opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
