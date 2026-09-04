@@ -22,7 +22,7 @@ export default function NoticeBox({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 10000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);

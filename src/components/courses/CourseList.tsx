@@ -58,13 +58,13 @@ export default function CourseList({ courses, isLoading, onRegisterClick }: Cour
   }
 
   return (
-    <section className="relative z-10 py-8 md:py-15" id="courses" aria-labelledby="courses-heading">
+    <section className="relative z-10 py-5 mt-6 md:py-15" id="courses" aria-labelledby="courses-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="mb-8 md:mb-12 flex flex-col items-start text-right"
+          className="mb-5 md:mb-10 flex flex-col items-start text-right"
         >
           <motion.h2
             id="courses-heading"

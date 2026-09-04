@@ -1,222 +1,273 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Globe, GraduationCap, Send, MessageSquare, Link2, ChevronRight } from 'lucide-react';
+import { Clock3, Headset, Mail, MapPin, Phone } from 'lucide-react';
 
 const instituteInfo = {
   name: 'موسسه آموزشی تارگت',
   tagline: 'مرجع آموزش ریاضیات در قم',
+  description:
+    'موسسه آموزشی تارگت با تمرکز بر آموزش مفهومی ریاضی، مسیر یادگیری دانش‌آموزان را هدفمند، منظم و نتیجه‌محور پیش می‌برد.',
   address: 'قم، خیابان امام، بلوار زینبیه، آموزشگاه تارگت',
   phone: '۰۲۵-۳۷۷۴۱۲۳۴',
-  mobile: '۰۹۱۲-۳۴۵۶۷۸۹',
   email: 'info@target-academy.ir',
-  hours: 'شنبه تا چهارشنبه: ۸ صبح تا ۱۰ شب\nپنج‌شنبه: ۸ صبح تا ۴ عصر\nجمعه: تعطیل',
-  coordinates: { lat: 34.6416, lng: 50.8746 },
 };
 
-const quickLinks = [
-  { href: '/', label: 'صفحه اصلی' },
-  { href: '#about', label: 'درباره ما' },
-  { href: '#courses', label: 'دوره‌های آموزشی' },
-  { href: '#contact', label: 'تماس با ما' },
-  { href: '/faq', label: 'سوالات متداول' },
-  { href: '/rules', label: 'قوانین و مقررات' },
-];
+const supportInfo = {
+  mobile1Fa: '۰۹۹۱۵۵۴۵۱۵۸',
+  mobile1En: '+989915545158',
+  mobile2Fa: '09331374210',
+  mobile2En: '+989331374210',
+  scheduleWeek:
+    'شنبه تا چهارشنبه: ساعت ۱۰ الی ۲۰',
+  scheduleWeekend:
+    'پنج‌شنبه و جمعه: ساعت ۱۲ الی ۱۸',
+};
 
-const coursesList = [
-  { href: '#course-tizhoshan-6', label: 'دوره جامع تیزهوشان ششم' },
-  { href: '#course-tizhoshan-advanced', label: 'ریاضی پیشرفته تیزهوشان' },
-  { href: '#course-math-6', label: 'ریاضی جامع ششم' },
-  { href: '#course-math-5', label: 'ریاضی جامع پنجم' },
-  { href: '#course-math-4', label: 'ریاضی جامع چهارم' },
-];
+const siteLogoSrc = 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logoTarget.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ29UYXJnZXQucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODQ1NjY0NywiZXhwIjoxNzk2MjMyNjQ3fQ.8Nyti_ZJyt5jscSSuSDwzljjA_Vzue4SlldGnYJLUUMvV_gwmzHn50flAomE6DQcgVR6-T9SUDnZ42uSKfHPEQ';
 
 const socialLinks = [
-  { href: 'https://telegram.me/targetacademy', icon: MessageSquare, label: 'تلگرام', ariaLabel: 'کانال تلگرام موسسه تارگت' },
-  { href: 'https://instagram.com/targetacademy', icon: GraduationCap, label: 'اینستاگرام', ariaLabel: 'صفحه اینستاگرام موسسه تارگت' },
-  { href: 'https://twitter.com/targetacademy', icon: Send, label: 'توییتر', ariaLabel: 'صفحه توییتر موسسه تارگت' },
-  { href: 'https://linkedin.com/company/targetacademy', icon: Link2, label: 'لینکدین', ariaLabel: 'صفحه لینکدین موسسه تارگت' },
+  {
+    label: 'اینستاگرام',
+    id: '@hamed.shahbazi',
+    href: 'https://instagram.com/hamed.shahbazi',
+    ariaLabel: 'صفحه اینستاگرام تارگت',
+    brand: 'instagram' as const,
+  },
+  {
+    label: 'ایتا',
+    id: '@Target_Academyy',
+    href: 'https://eitaa.com/Target_Academyy',
+    ariaLabel: 'کانال ایتا تارگت',
+    brand: 'eitaa' as const,
+  },
+  {
+    label: 'بله',
+    id: '@sampadiisho',
+    href: 'https://ble.ir/sampadiisho',
+    ariaLabel: 'کانال بله تارگت',
+    brand: 'bale' as const,
+  },
 ];
+
+function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+      <path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5Zm8.93 1.35a1.17 1.17 0 1 1 0 2.34 1.17 1.17 0 0 1 0-2.34ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.8A3.2 3.2 0 1 0 12 15.2 3.2 3.2 0 0 0 12 8.8Z" />
+    </svg>
+  );
+}
+
+function EitaaIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm4.82 7.02-1.64 7.73c-.12.55-.45.69-.91.43l-2.52-1.86-1.22 1.17c-.14.14-.25.25-.51.25l.18-2.58 4.7-4.24c.2-.18-.05-.28-.31-.1l-5.81 3.66-2.5-.78c-.54-.17-.55-.54.12-.8l9.78-3.77c.46-.17.86.11.64.89Z" />
+    </svg>
+  );
+}
+
+function BaleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+      <path d="M12 2c5.5 0 10 3.94 10 8.8 0 4.85-4.5 8.79-10 8.79-.88 0-1.74-.1-2.55-.3L5 22l1.17-3.45C3.62 17.05 2 14.08 2 10.8 2 5.94 6.5 2 12 2Zm-3.6 6.05a1.2 1.2 0 1 0 0 2.4h7.2a1.2 1.2 0 1 0 0-2.4H8.4Zm0 3.75a1.2 1.2 0 1 0 0 2.4h4.6a1.2 1.2 0 1 0 0-2.4H8.4Z" />
+    </svg>
+  );
+}
+
+function SocialIcon({ brand }: { brand: 'instagram' | 'eitaa' | 'bale' }) {
+  if (brand === 'instagram') return <InstagramIcon />;
+  if (brand === 'eitaa') return <EitaaIcon />;
+  return <BaleIcon />;
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer id="contact" className="relative bg-navy-950 text-navy-100" role="contentinfo">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-navy-900/50 via-navy-950 to-navy-950" aria-hidden="true" />
-      <div className="absolute inset-0 opacity-5" aria-hidden="true">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          backgroundSize: '60px 60px',
-        }} />
-      </div>
+    <footer id="contact" dir="rtl" className="relative py-12 md:py-16" role="contentinfo">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.45 }}
+          className="rounded-2xl md:rounded-3xl border border-white/60 bg-white/80 p-4 md:p-8 shadow-xl backdrop-blur-md"
+        >
+          <div className="grid grid-cols-1 gap-5 md:gap-6 lg:grid-cols-3">
+            
+            {/* معرفی + لوگو + شبکه‌ها */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
 
-      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="lg:col-span-1"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="h-8 w-8 text-gold-400" aria-hidden="true" />
-              <span className="text-xl font-bold text-white">موسسه تارگت</span>
-            </div>
-            <p className="text-navy-300 text-sm leading-relaxed mb-6">
-              {instituteInfo.tagline} با سابقه درخشان در تدریس ریاضیات پایه‌های چهارم تا ششم، تدریس حضوری در قم و آنلاین در سراسر ایران.
-            </p>
-            <div className="space-y-3 text-sm text-navy-300">
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-gold-400 shrink-0 mt-0.5" aria-hidden="true" />
-                <address className="not-italic leading-relaxed">{instituteInfo.address}</address>
-              </div>
-              <a
-                href={`tel:${instituteInfo.phone}`}
-                className="flex items-center gap-3 hover:text-gold-400 transition-colors"
-              >
-                <Phone className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <span>{instituteInfo.phone}</span>
-              </a>
-              <a
-                href={`tel:${instituteInfo.mobile}`}
-                className="flex items-center gap-3 hover:text-gold-400 transition-colors"
-              >
-                <Phone className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <span>{instituteInfo.mobile}</span>
-              </a>
-              <a
-                href={`mailto:${instituteInfo.email}`}
-                className="flex items-center gap-3 hover:text-gold-400 transition-colors"
-              >
-                <Mail className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <span>{instituteInfo.email}</span>
-              </a>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.ariaLabel}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-navy-800/50 text-navy-300 hover:bg-gold-500/20 hover:text-gold-400 transition-all"
-                >
-                  <social.icon className="h-5 w-5" aria-hidden="true" />
-                </a>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <h3 className="text-lg font-bold text-white mb-4">لینک‌های سریع</h3>
-            <nav aria-label="لینک‌های سریع">
-              <ul className="space-y-3">
-                {quickLinks.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      className="flex items-center gap-2 text-sm text-navy-300 hover:text-gold-400 transition-colors"
-                    >
-                      <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-1"
-          >
-            <h3 className="text-lg font-bold text-white mb-4">دوره‌های آموزشی</h3>
-            <nav aria-label="دوره‌های آموزشی">
-              <ul className="space-y-3">
-                {coursesList.map((course) => (
-                  <li key={course.href}>
-                    <a
-                      href={course.href}
-                      className="flex items-center gap-2 text-sm text-navy-300 hover:text-gold-400 transition-colors"
-                    >
-                      <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {course.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="lg:col-span-1"
-          >
-            <h3 className="text-lg font-bold text-white mb-4">اطلاعات تماس و مکان</h3>
-            <div className="space-y-4">
-              <div className="rounded-xl bg-navy-900/50 p-4 border border-navy-800">
-                <h4 className="font-medium text-white mb-2 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gold-400" aria-hidden="true" />
-                  ساعات کاری
-                </h4>
-                <pre className="text-sm text-navy-300 whitespace-pre-wrap leading-relaxed">{instituteInfo.hours}</pre>
+              {/* لوگو مربعی */}
+              <div className="w-full flex justify-center pb-5">
+                  <div className="relative h-24 w-24 overflow-hidden">
+                    {siteLogoSrc ? (
+                      <img
+                        src={siteLogoSrc}
+                      alt="لوگوی موسسه تارگت"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      />
+                    ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-[10px] font-bold text-slate-500">
+                      LOGO
+                    </div>
+                    )}
+                  </div>
               </div>
 
-              <div className="rounded-xl bg-navy-900/50 p-4 border border-navy-800">
-                <h4 className="font-medium text-white mb-3 flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-gold-400" aria-hidden="true" />
-                  مکان در نقشه
-                </h4>
-                <div className="relative h-40 rounded-lg overflow-hidden border border-navy-800">
-                  <iframe
-                    title="موقعیت موسسه تارگت در نقشه"
-                    src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3398.123!2d${instituteInfo.coordinates.lng}!3d${instituteInfo.coordinates.lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDM4JzI5LjciTiA1MMKwNTInMjkuNiJF!5e0!3m2!1sfa!2sir!4v1234567890`}
-                    style={{ border: 0 }}
-                    className="h-full w-full"
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    aria-label="موقعیت موسسه تارگت در قم"
-                  />
+              <h3
+                className="text-[1.35rem] md:text-2xl text-center leading-tight"
+                style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+              >
+                <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+                  {instituteInfo.name}
+                </span>
+              </h3>
+
+              <p className="mt-2 text-sm text-center md:text-[0.95rem] leading-7 text-slate-600">
+                {instituteInfo.tagline}
+              </p>
+              <p className="mt-1 text-sm text-center md:text-[0.95rem] leading-7 text-slate-600">
+                {instituteInfo.description}
+              </p>
+
+              {/* شبکه‌های اجتماعی */}
+              <div className="mt-5">
+                <div className="flex flex-wrap flex-col items-center items-center gap-2.5">
+                  {socialLinks.map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.ariaLabel}
+                      className="group inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/60 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    >
+                      <span className="text-slate-600 transition-colors group-hover:text-indigo-700">
+                        <SocialIcon brand={social.brand} />
+                      </span>
+                      <span>{social.label}</span>
+                      <span className="text-xs text-slate-500">{social.id}</span>
+                    </a>
+                  ))}
                 </div>
               </div>
-            </div>
-          </motion.div>
-        </div>
+            </section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-12 pt-8 border-t border-navy-800"
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-navy-400 text-center md:text-right">
-              © {currentYear} موسسه آموزشی تارگت. کلیه حقوق محفوظ است.
-            </p>
-            <div className="flex items-center gap-4 text-sm text-navy-400">
-              <a href="/privacy" className="hover:text-gold-400 transition-colors">حریم خصوصی</a>
-              <span className="text-navy-700">|</span>
-              <a href="/terms" className="hover:text-gold-400 transition-colors">قوانین استفاده</a>
-            </div>
+            {/* اطلاعات تماس */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+              <h4
+                className="text-[1.2rem] md:text-xl leading-tight"
+                style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+              >
+                <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+                  اطلاعات تماس
+                </span>
+              </h4>
+
+              <div className="mt-4 space-y-3 text-sm text-slate-700">
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="mt-0.5 h-4.5 w-4.5 shrink-0 text-indigo-600" />
+                  <address className="not-italic leading-7">{instituteInfo.address}</address>
+                </div>
+
+                <a
+                  href="tel:02537741234"
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  <Phone className="h-4.5 w-4.5 shrink-0 text-indigo-600" />
+                  <span>{instituteInfo.phone}</span>
+                </a>
+
+                <a
+                  href={`mailto:${instituteInfo.email}`}
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  <Mail className="h-4.5 w-4.5 shrink-0 text-indigo-600" />
+                  <span>{instituteInfo.email}</span>
+                </a>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+                <div className="mb-2 flex items-center gap-2 text-indigo-700">
+                  <Headset className="h-4.5 w-4.5" />
+                  <p className="text-sm font-extrabold">تماس با پشتیبانی</p>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <a
+                    href={`tel:${supportInfo.mobile1En}`}
+                    className="flex items-center gap-2 rounded-md bg-white px-2.5 py-2 text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  >
+                    <Phone className="h-4 w-4 text-indigo-600" />
+                    <span dir="ltr">{supportInfo.mobile1Fa}</span>
+                  </a>
+
+                  <a
+                    href={`tel:${supportInfo.mobile2En}`}
+                    className="flex items-center gap-2 rounded-md bg-white px-2.5 py-2 text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  >
+                    <Phone className="h-4 w-4 text-indigo-600" />
+                    <span dir="ltr">{supportInfo.mobile2Fa}</span>
+                  </a>
+                </div>
+
+                <div className="mt-3 space-y-1.5 text-xs md:text-sm text-slate-600">
+                  <p className="flex items-center gap-1.5">
+                    <Clock3 className="h-4 w-4 text-amber-500" />
+                    {supportInfo.scheduleWeek}
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <Clock3 className="h-4 w-4 text-amber-500" />
+                    {supportInfo.scheduleWeekend}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* نقشه */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+              <h4
+                className="text-[1.2rem] md:text-xl leading-tight"
+                style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+              >
+                <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+                  مکان در نقشه
+                </span>
+              </h4>
+
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                برای حضور در کلاس‌ها، می‌توانید موقعیت دقیق موسسه را روی نقشه مشاهده کنید.
+              </p>
+
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+                <iframe
+                  title="موقعیت موسسه تارگت در نقشه"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d410.23448374979097!2d50.87615426580014!3d34.65783765924841!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3f93bb006fee5357%3A0x5e64f7683b09ec49!2z2YXYtNin2YjYsdmHINmF2KfZhNuMINix2YjYtNmG2YHaqdix2KfZhg!5e0!3m2!1sfa!2s!4v1788453455896!5m2!1sfa!2s"
+                  width="600"
+                  height="450"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="h-56 w-full md:h-[18rem]"
+                />
+              </div>
+            </section>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35, delay: 0.15 }}
+            className="mt-6 border-t border-slate-200 pt-4"
+          >
+            <p className="text-center text-xs md:text-sm text-slate-500">
+              © {currentYear} موسسه آموزشی تارگت — کلیه حقوق محفوظ است.
+            </p>
+          </motion.div>
         </motion.div>
       </div>
     </footer>

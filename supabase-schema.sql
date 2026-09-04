@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS public.courses (
     location_online TEXT NOT NULL DEFAULT 'Google Meet',
     price_in_person BIGINT NOT NULL CHECK (price_in_person >= 0),
     price_online BIGINT NOT NULL CHECK (price_online >= 0),
+    original_price_in_person BIGINT CHECK (original_price_in_person IS NULL OR original_price_in_person >= 0),
+    discount_percent_in_person NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (discount_percent_in_person >= 0 AND discount_percent_in_person <= 100),
+    original_price_online BIGINT CHECK (original_price_online IS NULL OR original_price_online >= 0),
+    discount_percent_online NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (discount_percent_online >= 0 AND discount_percent_online <= 100),
     installments_count INTEGER NOT NULL DEFAULT 4 CHECK (installments_count >= 2 AND installments_count <= 12),
     installment_interest_pct NUMERIC(5,2) NOT NULL DEFAULT 20.00 CHECK (installment_interest_pct >= 0),
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -63,7 +67,8 @@ CREATE TRIGGER trg_courses_updated_at
 CREATE TABLE IF NOT EXISTS public.registration_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
-    phone_number TEXT NOT NULL CHECK (phone_number ~ '^09[0-9]{9}$'),
+    phone_number TEXT NOT NULL CHECK (phone_number ~ '^(\+98|09)9[0-9]{8}$'),
+    student_name TEXT NOT NULL DEFAULT '' CHECK (char_length(student_name) <= 120),
     registration_type TEXT NOT NULL CHECK (registration_type IN ('in_person', 'online')),
     payment_mode TEXT NOT NULL DEFAULT 'cash' CHECK (payment_mode IN ('cash', 'installment')),
     status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'done', 'rejected')),
@@ -84,11 +89,45 @@ CREATE INDEX IF NOT EXISTS idx_registration_requests_status
     ON public.registration_requests (status);
 
 -- ============================================================================
+-- TABLE: orders (Phase 1 schema support - see supabase-migration-phase1.sql)
+-- ============================================================================
+-- 4) Mobile validation accepting +98 and 09 formats
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1) courses: original prices and discount percentages
+--    price_in_person / price_online remain the CURRENT (discounted) selling price.
+--    original_* hold the pre-discount price; NULL = no discount data.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.courses
+    ADD COLUMN IF NOT EXISTS original_price_in_person BIGINT CHECK (original_price_in_person IS NULL OR original_price_in_person >= 0);
+ALTER TABLE public.courses
+    ADD COLUMN IF NOT EXISTS discount_percent_in_person NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (discount_percent_in_person >= 0 AND discount_percent_in_person <= 100);
+ALTER TABLE public.courses
+    ADD COLUMN IF NOT EXISTS original_price_online BIGINT CHECK (original_price_online IS NULL OR original_price_online >= 0);
+ALTER TABLE public.courses
+    ADD COLUMN IF NOT EXISTS discount_percent_online NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (discount_percent_online >= 0 AND discount_percent_online <= 100);
+
+-- Backfill: existing rows get original = current price, discount 0
+UPDATE public.courses
+SET original_price_in_person = COALESCE(original_price_in_person, price_in_person),
+    original_price_online   = COALESCE(original_price_online, price_online);
+
+-- ---------------------------------------------------------------------------
+-- 2) registration_requests: student_name
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.registration_requests
+    ADD COLUMN IF NOT EXISTS student_name TEXT NOT NULL DEFAULT '' CHECK (char_length(student_name) <= 120);
+
+-- ---------------------------------------------------------------------------
+
+-- ============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================================================
 
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 -- Courses are publicly readable
 DROP POLICY IF EXISTS "Public read courses" ON public.courses;
