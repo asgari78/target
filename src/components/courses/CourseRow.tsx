@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowLeft, BadgePercent, MapPin, Monitor } from 'lucide-react';
 import { Course } from '@/src/types';
-import { formatPrice, getBasePrice, getAvailableModes, getModeLabel, getModeIcon } from '@/src/lib/utils';
+import { formatPrice, getBasePrice, getAvailableModes } from '@/src/lib/utils';
 import { calculateInstallmentPlan } from '@/src/lib/utils';
 
 interface CourseRowProps {

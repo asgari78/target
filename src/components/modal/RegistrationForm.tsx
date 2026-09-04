@@ -89,7 +89,7 @@ export default function RegistrationForm({
     }
   };
 
-  if (isSubmitted) {
+  if (submitType) {
     return (
       <div className="space-y-4 text-center py-8" dir="rtl">
         <motion.div
