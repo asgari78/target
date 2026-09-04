@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       order_id: orderId,
       event: 'callback_error',
       payload: { error: String(error), authority, status },
-    }).catch(() => {});
+    });
 
     return NextResponse.redirect(`${frontendUrl}failed&error=callback_error`);
   }
