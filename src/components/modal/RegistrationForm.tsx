@@ -5,10 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle2, AlertCircle, User, Phone, CreditCard, ArrowLeft } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn, formatPrice, getModeLabel } from '@/src/lib/utils';
 import { registrationSchema, type RegistrationFormValues } from '@/src/lib/validations';
-import { calculateInstallmentPlan, formatPrice, getModeLabel } from '@/src/lib/utils';
-import type { Course, PaymentMode, RegistrationType } from '@/src/types';
+import type { Course, PaymentMode, RegistrationType, CourseOffering, OrderPricingResult } from '@/src/types';
 
 interface RegistrationFormProps {
   course: Course;
@@ -16,10 +15,21 @@ interface RegistrationFormProps {
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
   onPaymentInitiate: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType; paymentMode: PaymentMode }) => Promise<void>;
-  onReservation: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType }) => Promise<void>;
+  onConsultation: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType }) => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  variant: 'payment' | 'consultation';
   onClose: () => void;
+  offering: CourseOffering | null;
+  pricing: OrderPricingResult | null;
+  firstInstallmentAmount: number | null;
+  installmentItems: Array<{
+    index: number;
+    label: string;
+    amountBeforeDiscount: number;
+    amountAfterDiscount: number;
+    isDownPayment: boolean;
+  }>;
 }
 
 export default function RegistrationForm({
@@ -28,12 +38,17 @@ export default function RegistrationForm({
   paymentMode,
   onPaymentModeChange,
   onPaymentInitiate,
-  onReservation,
+  onConsultation,
   isLoading,
   error,
+  variant,
   onClose,
+  offering,
+  pricing,
+  firstInstallmentAmount,
+  installmentItems,
 }: RegistrationFormProps) {
-  const [submitType, setSubmitType] = useState<'payment' | 'reservation' | null>(null);
+  const [submitType, setSubmitType] = useState<'payment' | 'consultation' | null>(null);
 
   const {
     register,
@@ -46,6 +61,7 @@ export default function RegistrationForm({
     defaultValues: {
       studentName: '',
       phoneNumber: '',
+      paymentMode: paymentMode,
     },
   });
 
@@ -54,13 +70,12 @@ export default function RegistrationForm({
   const watchedStudentName = watch('studentName');
 
   useEffect(() => {
-    onPaymentModeChange(watchedPaymentMode);
-  }, [watchedPaymentMode, onPaymentModeChange]);
+    onPaymentModeChange(watchedPaymentMode ?? paymentMode);
+  }, [watchedPaymentMode, onPaymentModeChange, paymentMode]);
 
-  const plan = calculateInstallmentPlan(course, registrationType, paymentMode);
   const modeLabel = getModeLabel(registrationType);
   const isInstallment = paymentMode === 'installment';
-  const firstInstallmentAmount = isInstallment ? plan.installments[0]?.amount : plan.baseAmount;
+  const payableAmount = isInstallment ? (firstInstallmentAmount ?? pricing?.installments[0]?.amount ?? 0) : (pricing?.baseAmount ?? 0);
 
   const onSubmitPayment = async (values: RegistrationFormValues) => {
     setSubmitType('payment');
@@ -76,16 +91,16 @@ export default function RegistrationForm({
     }
   };
 
-  const onSubmitReservation = async (values: RegistrationFormValues) => {
-    setSubmitType('reservation');
+  const onSubmitConsultation = async (values: RegistrationFormValues) => {
+    setSubmitType('consultation');
     try {
-      await onReservation({
+      await onConsultation({
         ...values,
         courseId: course.id,
         registrationType,
       });
     } catch (err) {
-      console.error('Reservation error:', err);
+      console.error('Consultation error:', err);
     }
   };
 
@@ -101,15 +116,15 @@ export default function RegistrationForm({
           <CheckCircle2 className="h-8 w-8 text-emerald-600" aria-hidden="true" />
         </motion.div>
         <h3 className="text-xl font-bold text-slate-900">
-          {submitType === 'reservation' ? 'رزرو رایگان با موفقیت انجام شد' : 'درخواست پرداخت ارسال شد'}
+          {submitType === 'consultation' ? 'درخواست مشاوره با موفقیت ثبت شد' : 'درخواست پرداخت ارسال شد'}
         </h3>
         <p className="text-slate-600">
-          {submitType === 'reservation'
-            ? `شما برای دوره «${course.title}» (${modeLabel}) رزرو شدید.`
+          {submitType === 'consultation'
+            ? `شما برای دوره «${course.title}» (${modeLabel}) درخواست مشاوره دادید.`
             : `برای تکمیل ثبت‌نام به درگاه پرداخت هدایت می‌شوید.`}
         </p>
         <p className="text-sm text-slate-500 mt-2">
-          {submitType === 'reservation'
+          {submitType === 'consultation'
             ? 'پشتیبانی موسسه در سریع‌ترین وقت با شما تماس خواهد گرفت.'
             : 'در صورت عدم انتقال خودکار، روی دکمه زیر کلیک کنید.'}
         </p>
@@ -127,12 +142,12 @@ export default function RegistrationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmitPayment)} className="space-y-4" dir="rtl" noValidate>
+    <form onSubmit={handleSubmit(variant === 'payment' ? onSubmitPayment : onSubmitConsultation)} className="space-y-4" dir="rtl" noValidate>
       {/* Payment Summary Card */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-4 border border-slate-200 bg-gradient-to-br from-slate-50 to-white"
+        className="rounded-2xl p-4 border border-slate-200 bg-linear-to-br from-slate-50 to-white"
       >
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -141,18 +156,18 @@ export default function RegistrationForm({
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               {isInstallment
-                ? `پیش‌پرداخت: ${formatPrice(firstInstallmentAmount)} تومان (از ${course.installmentsCount} قسط)`
-                : `مبلغ قابل پرداخت: ${formatPrice(plan.baseAmount)} تومان`}
+                ? `پیش‌پرداخت: ${formatPrice(payableAmount)} تومان (از ${offering?.installmentsCount ?? 0} قسط)`
+                : `مبلغ قابل پرداخت: ${formatPrice(payableAmount)} تومان`}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            {plan.discountPercent > 0 && plan.originalAmount && plan.originalAmount > plan.baseAmount && (
+            {pricing && pricing.discountPercent > 0 && pricing.originalAmount && pricing.originalAmount > pricing.baseAmount && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
-                {plan.discountPercent}٪ تخفیف
+                {pricing.discountPercent}٪ تخفیف
               </span>
             )}
             <span className="text-xl font-extrabold text-slate-900 fa-nums">
-              {formatPrice(isInstallment ? firstInstallmentAmount : plan.baseAmount)}
+              {formatPrice(payableAmount)}
             </span>
             <span className="text-xs text-slate-500">تومان</span>
           </div>
@@ -182,7 +197,7 @@ export default function RegistrationForm({
             aria-invalid={errors.studentName ? 'true' : 'false'}
             aria-describedby={errors.studentName ? 'name-error' : undefined}
             autoComplete="name"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
             <User className="h-5 w-5" aria-hidden="true" />
@@ -239,7 +254,7 @@ export default function RegistrationForm({
             aria-invalid={errors.phoneNumber ? 'true' : 'false'}
             aria-describedby={errors.phoneNumber ? 'phone-error' : undefined}
             autoComplete="tel"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
             <Phone className="h-5 w-5" aria-hidden="true" />
@@ -271,68 +286,74 @@ export default function RegistrationForm({
         )}
       </motion.div>
 
-      {/* Payment Mode Toggle */}
-      <motion.fieldset
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="space-y-3"
-      >
-        <legend className="mb-2 block text-sm font-medium text-slate-700">
-          نحوه پرداخت <span className="text-red-500" aria-hidden="true">*</span>
-        </legend>
-        <div className="relative flex w-full max-w-sm rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
-          {[
-            { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
-            { id: 'installment' as PaymentMode, label: `اقساط (${course.installmentsCount} مرحله)`, icon: CreditCard },
-          ].map((option) => {
-            const isSelected = watchedPaymentMode === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {}}
-                className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-bold transition-colors duration-200',
-                  isSelected ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {isSelected && (
-                  <motion.div
-                    layoutId="payment-toggle-bg"
-                    className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      {/* Payment Mode Toggle (only for payment variant) */}
+      {variant === 'payment' && offering && (
+        <motion.fieldset
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="space-y-3"
+        >
+          <legend className="mb-2 block text-sm font-medium text-slate-700">
+            نحوه پرداخت <span className="text-red-500" aria-hidden="true">*</span>
+          </legend>
+          <div className="relative flex w-full max-w-sm rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
+            {[
+              { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
+              { id: 'installment' as PaymentMode, label: `اقساط (${offering.installmentsCount} مرحله)`, icon: CreditCard },
+            ].map((option) => {
+              const isSelected = watchedPaymentMode === option.id;
+              const isDisabled = option.id === 'installment' && offering.installmentsCount <= 0;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => !isDisabled && onPaymentModeChange(option.id)}
+                  disabled={isDisabled}
+                  className={cn(
+                    'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-bold transition-colors duration-200',
+                    isSelected ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
+                    isDisabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="payment-toggle-bg"
+                      className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5"
+                      initial={false}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-20 flex items-center gap-1.5">
+                    <option.icon className="h-4 w-4" aria-hidden="true" />
+                    {option.label}
+                  </span>
+                  <input
+                    type="radio"
+                    checked={isSelected}
+                    disabled={isDisabled}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    {...register('paymentMode', { value: option.id })}
                   />
-                )}
-                <span className="relative z-20 flex items-center gap-1.5">
-                  <option.icon className="h-4 w-4" aria-hidden="true" />
-                  {option.label}
-                </span>
-                <input
-                  type="radio"
-                  checked={isSelected}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  {...register('paymentMode')}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </motion.fieldset>
+                </button>
+              );
+            })}
+          </div>
+        </motion.fieldset>
+      )}
 
       {/* Installment Preview (when installment mode selected) */}
-      {isInstallment && (
+      {variant === 'payment' && isInstallment && installmentItems.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl p-3 border border-amber-200 bg-amber-50/50"
         >
           <p className="text-sm font-medium text-amber-800 text-center mb-2">
-            پیش‌پرداخت: <span className="font-extrabold fa-nums">{formatPrice(firstInstallmentAmount)}</span> تومان
+            پیش‌پرداخت: <span className="font-extrabold fa-nums">{formatPrice(firstInstallmentAmount ?? 0)}</span> تومان
           </p>
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-            {plan.installments.slice(0, 4).map((item, i) => (
+            {installmentItems.map((item, i) => (
               <div
                 key={item.index}
                 className={cn(
@@ -353,16 +374,11 @@ export default function RegistrationForm({
                   </span>
                 </div>
                 <span className="font-bold tabular-nums fa-nums">
-                  {formatPrice(item.amount)}
+                  {formatPrice(item.amountAfterDiscount)}
                   <span className="ml-1 text-[10px] font-normal text-slate-500">تومان</span>
                 </span>
               </div>
             ))}
-            {plan.installments.length > 4 && (
-              <div className="text-center text-xs text-slate-500 py-1">
-                و {plan.installments.length - 4} قسط دیگر...
-              </div>
-            )}
           </div>
         </motion.div>
       )}
@@ -382,7 +398,7 @@ export default function RegistrationForm({
 
       {/* Action Buttons */}
       <div className="space-y-3 pt-2">
-        {/* Primary: Register / Pay First Installment */}
+        {/* Primary Action */}
         <button
           type="submit"
           disabled={isSubmitting || isLoading || !isValid || !watchedPhoneNumber || !watchedStudentName}
@@ -391,7 +407,7 @@ export default function RegistrationForm({
             'font-semibold text-white transition hover:scale-[1.02] active:scale-[0.98]',
             'disabled:cursor-not-allowed disabled:opacity-50',
             isValid && watchedPhoneNumber && watchedStudentName && !isSubmitting && !isLoading
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200/50'
+              ? 'bg-linear-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200/50'
               : 'bg-slate-300 cursor-not-allowed',
           )}
         >
@@ -400,40 +416,55 @@ export default function RegistrationForm({
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
               {isSubmitting ? 'در حال ارسال...' : 'در حال اتصال به درگاه...'}
             </>
-          ) : (
+          ) : variant === 'payment' ? (
             <>
               <CreditCard className="h-5 w-5" aria-hidden="true" />
               {isInstallment
-                ? `پرداخت پیش‌پرداخت (${formatPrice(firstInstallmentAmount)} تومان)`
-                : `پرداخت نقدی (${formatPrice(plan.baseAmount)} تومان)`}
+                ? `پرداخت پیش‌پرداخت (${formatPrice(firstInstallmentAmount ?? 0)} تومان)`
+                : `پرداخت نقدی (${formatPrice(pricing?.baseAmount ?? 0)} تومان)`}
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+              ثبت درخواست مشاوره
             </>
           )}
         </button>
 
-        {/* Secondary: Free Reservation */}
-        <button
-          type="button"
-          onClick={() => handleSubmit(onSubmitReservation)({ studentName: watchedStudentName, phoneNumber: watchedPhoneNumber })}
-          disabled={isSubmitting || isLoading || !watchedPhoneNumber || !watchedStudentName}
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5',
-            'font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-              <span className="text-[10px] font-bold">!</span>
+        {/* Secondary Action - only for payment variant */}
+        {variant === 'payment' && (
+          <button
+            type="button"
+            onClick={() => {
+              // Manually validate and submit consultation
+              onSubmitConsultation({
+                studentName: watchedStudentName ?? '',
+                phoneNumber: watchedPhoneNumber ?? '',
+              });
+            }}
+            disabled={isSubmitting || isLoading || !watchedPhoneNumber || !watchedStudentName}
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5',
+              'font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <span className="text-[10px] font-bold">!</span>
+              </span>
+              درخواست مشاوره (رایگان)
             </span>
-            رزرو رایگان (بدون پرداخت)
-          </span>
-        </button>
+          </button>
+        )}
       </div>
 
       <p className="text-center text-xs text-slate-500">
-        {isInstallment
-          ? 'با پرداخت پیش‌پرداخت، ثبت‌نام شما نهایی شده و بقیه اقساط طبق برنامه تحصیلی قابل پرداخت است.'
-          : 'پس از پرداخت، ثبت‌نام شما نهایی شده و پشتیبانی موسسه با شما تماس خواهد گرفت.'}
+        {variant === 'payment'
+          ? (isInstallment
+              ? 'با پرداخت پیش‌پرداخت، ثبت‌نام شما نهایی شده و بقیه اقساط طبق برنامه تحصیلی قابل پرداخت است.'
+              : 'پس از پرداخت، ثبت‌نام شما نهایی شده و پشتیبانی موسسه با شما تماس خواهد گرفت.')
+          : 'پس از ثبت درخواست، کارشناسان ما در سریع‌ترین وقت با شما تماس خواهند گرفت.'}
       </p>
     </form>
   );

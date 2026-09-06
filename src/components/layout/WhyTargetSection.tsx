@@ -82,7 +82,7 @@ export default function WhyTargetSection() {
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               className="text-[1.55rem] leading-tight md:text-4xl"
             >
-              <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
                 چرا تارگت؟
               </span>
             </h3>

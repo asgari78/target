@@ -131,6 +131,7 @@ export default function StatsSection() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStats();
   }, [loadStats]);
 
@@ -140,7 +141,9 @@ export default function StatsSection() {
       const t = setTimeout(() => setStartCount(true), 150);
       return () => clearTimeout(t);
     }
-    setStartCount(false);
+    // Use timeout to avoid synchronous setState in effect
+    const timeoutId = setTimeout(() => setStartCount(false), 0);
+    return () => clearTimeout(timeoutId);
   }, [loading, error, stats.length]);
 
   const skeletons = useMemo(() => Array.from({ length: 3 }), []);
@@ -166,7 +169,7 @@ export default function StatsSection() {
             style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
             className="text-center text-3xl leading-tight text-slate-800 md:text-5xl"
           >
-            <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
               تارگت
             </span>{' '}
             <span className="text-slate-800">تا قله با تو</span>
@@ -176,7 +179,7 @@ export default function StatsSection() {
             رشد واقعی با تلاش مستمر، آموزش اصولی و مسیر هدفمند
           </p>
 
-          <span className="mx-auto mt-5 block h-1.5 w-44 rounded-full bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 md:w-72" />
+          <span className="mx-auto mt-5 block h-1.5 w-44 rounded-full bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 md:w-72" />
 
           {/* Error State */}
           {error && (

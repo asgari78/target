@@ -10,7 +10,7 @@ export interface InstallmentItem {
   index: number;
   label: string;
   amount: number;
-  dueDate: string; // ISO date string
+  dueDate: string;
   isDownPayment: boolean;
 }
 
@@ -41,17 +41,14 @@ const INSTALLMENT_LABELS = [
 /**
  * Calculates order pricing with interest-free installments.
  * - Cash mode: returns discounted price
- * - Installment mode: divides discounted price equally across installments (no interest)
+ * - Installment mode: uses stored installment amounts from database
  * - Original price is used only for display (strikethrough)
  * - Discount is applied to original price to get base price
  */
 export function calculateOrderPricing(input: OrderPricingInput): OrderPricingResult {
   const { basePrice, originalPrice, discountPercent, installmentsCount, paymentMode } = input;
   
-  // Determine the effective original price (for display)
   const effectiveOriginalPrice = originalPrice ?? basePrice;
-  
-  // The base price is already the discounted price (what customer pays)
   const discountedPrice = basePrice;
   
   if (paymentMode === 'cash') {
@@ -73,7 +70,9 @@ export function calculateOrderPricing(input: OrderPricingInput): OrderPricingRes
     };
   }
 
-  // Installment mode - interest-free
+  // Installment mode - we should use stored installment amounts from database
+  // This function is kept for backward compatibility but the new flow
+  // reads installments directly from the database
   const n = Math.max(1, installmentsCount);
   const perInstallment = Math.floor(discountedPrice / n);
   const remainder = discountedPrice % n;
@@ -83,7 +82,6 @@ export function calculateOrderPricing(input: OrderPricingInput): OrderPricingRes
   
   for (let i = 0; i < n; i++) {
     let amount = perInstallment;
-    // Add remainder to the last installment
     if (i === n - 1) {
       amount += remainder;
     }
@@ -113,6 +111,82 @@ export function calculateOrderPricing(input: OrderPricingInput): OrderPricingRes
 }
 
 /**
+ * Calculates order pricing from stored installment data (new schema)
+ * This is the authoritative pricing function for the new flow
+ */
+export function calculateOrderPricingFromOffering(
+  offering: {
+    cashPriceBeforeDiscount: number;
+    cashPriceAfterDiscount: number;
+    installmentsCount: number;
+    installmentInterestPct: number;
+  },
+  installments: Array<{
+    sequenceNumber: number;
+    label: string;
+    amountBeforeDiscount: number;
+    amountAfterDiscount: number;
+    dueMonthOffset: number;
+    isDownPayment: boolean;
+  }>,
+  paymentMode: 'cash' | 'installment'
+): OrderPricingResult {
+  const { cashPriceBeforeDiscount, cashPriceAfterDiscount } = offering;
+  const discountPercent = cashPriceBeforeDiscount > 0
+    ? Math.round(((cashPriceBeforeDiscount - cashPriceAfterDiscount) / cashPriceBeforeDiscount) * 100)
+    : 0;
+
+  if (paymentMode === 'cash') {
+    return {
+      baseAmount: cashPriceAfterDiscount,
+      originalAmount: cashPriceBeforeDiscount,
+      discountPercent,
+      totalAmount: cashPriceAfterDiscount,
+      installments: [
+        {
+          index: 1,
+          label: 'پرداخت نقدی',
+          amount: cashPriceAfterDiscount,
+          dueDate: new Date().toISOString().split('T')[0],
+          isDownPayment: true,
+        },
+      ],
+      perInstallmentAmount: cashPriceAfterDiscount,
+    };
+  }
+
+  // Installment mode - use stored after-discount amounts
+  // Sort by sequence number to ensure correct order
+  const sortedInstallments = [...installments].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+  
+  const installmentItems: InstallmentItem[] = sortedInstallments.map((inst) => ({
+    index: inst.sequenceNumber,
+    label: inst.label,
+    amount: inst.amountAfterDiscount,
+    dueDate: calculateDueDate(inst.dueMonthOffset),
+    isDownPayment: inst.isDownPayment,
+  }));
+
+  const totalAmount = installmentItems.reduce((sum, inst) => sum + inst.amount, 0);
+  const perInstallmentAmount = installmentItems.length > 0 ? installmentItems[0].amount : 0;
+
+  return {
+    baseAmount: cashPriceAfterDiscount,
+    originalAmount: cashPriceBeforeDiscount,
+    discountPercent,
+    totalAmount,
+    installments: installmentItems,
+    perInstallmentAmount,
+  };
+}
+
+function calculateDueDate(monthOffset: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() + monthOffset);
+  return date.toISOString().split('T')[0];
+}
+
+/**
  * Formats price in Tomans with Persian numerals
  */
 export function formatPrice(value: number | null | undefined): string {
@@ -127,8 +201,6 @@ export function formatPrice(value: number | null | undefined): string {
 export function formatJalaliDate(isoDate: string): string {
   try {
     const date = new Date(isoDate);
-    // Simple Gregorian to Jalali conversion approximation
-    // For accurate conversion, use 'jalaali-js' package
     const formatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
       year: 'numeric',
       month: 'long',
@@ -146,4 +218,26 @@ export function formatJalaliDate(isoDate: string): string {
 export function calculateDiscountPercent(original: number, discounted: number): number {
   if (original <= 0) return 0;
   return Math.round(((original - discounted) / original) * 100);
+}
+
+/**
+ * Validates that a monetary amount is a valid positive integer toman
+ */
+export function validateMonetaryAmount(value: number): boolean {
+  return Number.isInteger(value) && value >= 0 && value <= 999999999999; // Up to 999 billion tomans
+}
+
+/**
+ * Formats amount for Zarinpal (converts Tomans to Rials)
+ * Zarinpal expects amounts in Rials (1 Toman = 10 Rials)
+ */
+export function formatAmountForZarinpal(amountInTomans: number): number {
+  return Math.round(amountInTomans * 10);
+}
+
+/**
+ * Formats amount from Zarinpal (converts Rials to Tomans)
+ */
+export function formatAmountFromZarinpal(amountInRials: number): number {
+  return Math.round(amountInRials / 10);
 }

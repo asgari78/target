@@ -120,7 +120,7 @@ export default function Footer() {
                 className="text-[1.35rem] md:text-2xl text-center leading-tight"
                 style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               >
-                <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+                <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
                   {instituteInfo.name}
                 </span>
               </h3>
@@ -134,7 +134,7 @@ export default function Footer() {
 
               {/* شبکه‌های اجتماعی */}
               <div className="mt-5">
-                <div className="flex flex-wrap flex-col items-center items-center gap-2.5">
+                <div className="flex flex-wrap flex-col items-center gap-2.5">
                   {socialLinks.map((social) => (
                     <a
                       key={social.label}
@@ -232,7 +232,7 @@ export default function Footer() {
                 className="text-[1.2rem] md:text-xl leading-tight"
                 style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               >
-                <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+                <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
                   مکان در نقشه
                 </span>
               </h4>
@@ -251,7 +251,7 @@ export default function Footer() {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="strict-origin-when-cross-origin"
-                  className="h-56 w-full md:h-[18rem]"
+                  className="h-56 w-full md:h-72"
                 />
               </div>
             </section>

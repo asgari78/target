@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/src/lib/server/supabaseAdmin';
 import { requestPayment, getPaymentUrl } from '@/src/lib/server/zarinpal';
-import { calculateOrderPricing, OrderPricingInput } from '@/src/lib/pricing';
+import { calculateOrderPricingFromOffering, formatAmountForZarinpal } from '@/src/lib/pricing';
 
 export const runtime = 'nodejs';
 
@@ -22,44 +22,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch course details
-    const { data: course, error: courseError } = await supabaseAdmin
+    // Fetch course with offerings and installments
+    const { data: courseData, error: courseError } = await supabaseAdmin()
       .from('courses')
-      .select('*')
+      .select(`
+        *,
+        course_offerings!inner (
+          *,
+          installments (*)
+        )
+      `)
       .eq('id', body.courseId)
       .eq('is_active', true)
+      .eq('course_offerings.attendance_mode', body.registrationType)
+      .eq('course_offerings.is_available', true)
       .single();
 
-    if (courseError || !course) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    if (courseError || !courseData) {
+      return NextResponse.json({ error: 'Course not found or mode not available' }, { status: 404 });
     }
 
-    // Check mode availability
-    const modeAvailable = body.registrationType === 'in_person' 
-      ? course.in_person_available 
-      : course.online_available;
-
-    if (!modeAvailable) {
+    const offering = courseData.course_offerings?.[0];
+    if (!offering) {
       return NextResponse.json({ error: 'This mode is not available for this course' }, { status: 400 });
     }
 
-    // Calculate pricing server-side
-    const pricingInput: OrderPricingInput = {
-      basePrice: body.registrationType === 'in_person' ? Number(course.price_in_person) : Number(course.price_online),
-      originalPrice: body.registrationType === 'in_person' 
-        ? (course.original_price_in_person ? Number(course.original_price_in_person) : null)
-        : (course.original_price_online ? Number(course.original_price_online) : null),
-      discountPercent: body.registrationType === 'in_person' 
-        ? Number(course.discount_percent_in_person ?? 0)
-        : Number(course.discount_percent_online ?? 0),
-      installmentsCount: course.installments_count,
-      paymentMode: body.paymentMode,
-    };
+    // Validate payment mode availability
+    if (body.paymentMode === 'installment' && (!offering.installments || offering.installments.length === 0)) {
+      return NextResponse.json({ error: 'Installment plan not available for this offering' }, { status: 400 });
+    }
 
-    const pricing = calculateOrderPricing(pricingInput);
+    // Calculate pricing server-side from stored data
+    const pricing = calculateOrderPricingFromOffering(
+      {
+        cashPriceBeforeDiscount: offering.cash_price_before_discount,
+        cashPriceAfterDiscount: offering.cash_price_after_discount,
+        installmentsCount: offering.installments_count,
+        installmentInterestPct: offering.installment_interest_pct,
+      },
+      offering.installments ?? [],
+      body.paymentMode
+    );
+
+    // Determine amount to charge (first installment for installment mode, full amount for cash)
+    const amountToCharge = body.paymentMode === 'installment'
+      ? (offering.installments?.[0]?.amount_after_discount ?? pricing.baseAmount)
+      : pricing.baseAmount;
 
     // Create pending order
-    const { data: order, error: orderError } = await supabaseAdmin
+    const { data: order, error: orderError } = await supabaseAdmin()
       .from('orders')
       .insert({
         course_id: body.courseId,
@@ -72,8 +83,11 @@ export async function POST(request: NextRequest) {
         discount_percent: pricing.discountPercent,
         interest_percent: 0, // Interest-free
         total_amount: pricing.totalAmount,
-        installments_count: body.paymentMode === 'installment' ? course.installments_count : 1,
+        installments_count: body.paymentMode === 'installment' ? offering.installments_count : 1,
         installment_index: 1,
+        installment_due_date: body.paymentMode === 'installment' && offering.installments?.[0]?.due_month_offset !== undefined
+          ? new Date(Date.now() + offering.installments[0].due_month_offset * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          : null,
         status: 'pending',
         is_reservation: false,
       })
@@ -86,11 +100,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Request payment from Zarinpal
-    const description = `ثبت‌نام در ${course.title} (${body.registrationType === 'in_person' ? 'حضوری' : 'آنلاین'})`;
+    const description = `ثبت‌نام در ${courseData.title} (${body.registrationType === 'in_person' ? 'حضوری' : 'آنلاین'})`;
     const callbackUrl = `/api/payments/zarinpal/callback?orderId=${order.id}`;
 
+    // Zarinpal expects amount in Rials (1 Toman = 10 Rials)
+    const zarinpalAmount = formatAmountForZarinpal(amountToCharge);
+
     const paymentResponse = await requestPayment({
-      amount: pricing.totalAmount / 10, // Zarinpal expects amount in Rials (1 Toman = 10 Rials)
+      amount: zarinpalAmount,
       description,
       callbackUrl,
       metadata: {
@@ -104,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     if (paymentResponse.errors) {
       // Update order status to failed
-      await supabaseAdmin
+      await supabaseAdmin()
         .from('orders')
         .update({ status: 'failed', callback_payload: paymentResponse })
         .eq('id', order.id);
@@ -114,13 +131,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Update order with authority
-    await supabaseAdmin
+    await supabaseAdmin()
       .from('orders')
       .update({ authority: paymentResponse.data?.authority })
       .eq('id', order.id);
 
     // Log payment initiation
-    await supabaseAdmin.from('payment_logs').insert({
+    await supabaseAdmin().from('payment_logs').insert({
       order_id: order.id,
       event: 'payment_requested',
       payload: paymentResponse,
@@ -132,7 +149,7 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       authority: paymentResponse.data?.authority,
       payUrl,
-      amount: pricing.totalAmount,
+      amount: amountToCharge,
     });
   } catch (error) {
     console.error('Create order error:', error);

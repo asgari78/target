@@ -26,11 +26,13 @@ export const registrationSchema = z.object({
       message: 'شماره موبایل معتبر نیست (مثال: 09123456789 یا +989123456789).',
     })
     .transform(normalizeMobile),
+
+  paymentMode: z.enum(['cash', 'installment']).optional(),
 });
 
 export type RegistrationFormValues = z.infer<typeof registrationSchema>;
 
-/** Schema for order creation API. */
+/** Schema for order creation API (includes paymentMode as required). */
 export const createOrderSchema = registrationSchema.extend({
   courseId: z.string().uuid({ message: 'شناسه دوره نامعتبر است.' }),
   registrationType: z.enum(['in_person', 'online'], {

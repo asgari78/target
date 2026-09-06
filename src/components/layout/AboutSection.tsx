@@ -189,8 +189,8 @@ function AutoScrollResume({
 }: AutoScrollResumeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimeoutRef = useRef<number | null>(null);
+  const retryTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -351,7 +351,7 @@ function InstructorCard({
           style={{ perspective: '1800px' }}
         >
           <div
-            className="relative h-[31rem] md:h-[36rem] w-full min-h-0 rounded-[1.25rem] md:rounded-[1.6rem] transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform"
+            className="relative h-124 md:h-144 w-full min-h-0 rounded-[1.25rem] md:rounded-[1.6rem] transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform"
             style={{
               transform: open ? 'rotateY(180deg)' : 'rotateY(0deg)',
               transformStyle: 'preserve-3d',
@@ -565,7 +565,7 @@ export default function AboutSection() {
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               className="text-[1.9rem] md:text-4xl leading-tight"
             >
-              <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
                 اساتید ما، تفاوت ما
               </span>
             </h3>

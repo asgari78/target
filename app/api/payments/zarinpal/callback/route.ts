@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/src/lib/server/supabaseAdmin';
 import { verifyPayment } from '@/src/lib/server/zarinpal';
+import { formatAmountForZarinpal } from '@/src/lib/pricing';
 
 export const runtime = 'nodejs';
 
@@ -18,8 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch order to get amount
-    const { data: order, error: orderError } = await supabaseAdmin
+    // Fetch order to get amount and details
+    const { data: order, error: orderError } = await supabaseAdmin()
       .from('orders')
       .select('*')
       .eq('id', orderId)
@@ -30,19 +31,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${frontendUrl}failed&error=order_not_found`);
     }
 
-    // If status is not OK, mark as failed
+    // If status is not OK, mark as cancelled
     if (status !== 'OK') {
-      await supabaseAdmin
+      await supabaseAdmin()
         .from('orders')
-        .update({ 
-          status: 'failed', 
+        .update({
+          status: 'cancelled',
           authority,
           callback_payload: { status, authority },
           updated_at: new Date().toISOString(),
         })
         .eq('id', orderId);
 
-      await supabaseAdmin.from('payment_logs').insert({
+      await supabaseAdmin().from('payment_logs').insert({
         order_id: orderId,
         event: 'payment_cancelled',
         payload: { status, authority },
@@ -51,26 +52,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${frontendUrl}cancelled`);
     }
 
-    // Verify payment with Zarinpal
-    // Note: Zarinpal expects amount in Rials (1 Toman = 10 Rials)
+    // Verify payment with Zarinpal using the exact amount that was charged
+    // For installment orders, this is the first installment amount
+    // For cash orders, this is the full amount
+    const amountToVerify = formatAmountForZarinpal(order.total_amount);
+
     const verifyResponse = await verifyPayment({
-      amount: order.total_amount / 10,
+      amount: amountToVerify,
       authority,
     });
 
     if (verifyResponse.errors) {
       // Payment verification failed
-      await supabaseAdmin
+      await supabaseAdmin()
         .from('orders')
-        .update({ 
-          status: 'failed', 
+        .update({
+          status: 'failed',
           authority,
           callback_payload: verifyResponse,
           updated_at: new Date().toISOString(),
         })
         .eq('id', orderId);
 
-      await supabaseAdmin.from('payment_logs').insert({
+      await supabaseAdmin().from('payment_logs').insert({
         order_id: orderId,
         event: 'verification_failed',
         payload: verifyResponse,
@@ -79,13 +83,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${frontendUrl}failed&error=verification_failed`);
     }
 
-    // Payment successful
+    // Payment successful - check if already processed to prevent duplicate processing
+    if (order.status === 'paid') {
+      console.log('Order already marked as paid, skipping duplicate processing:', orderId);
+      return NextResponse.redirect(`${frontendUrl}success&orderId=${orderId}`);
+    }
+
     const refId = verifyResponse.data?.ref_id;
 
-    await supabaseAdmin
+    // Use a transaction-like approach for critical updates
+    // First update order status to paid
+    const { error: updateError } = await supabaseAdmin()
       .from('orders')
-      .update({ 
-        status: 'paid', 
+      .update({
+        status: 'paid',
         authority,
         ref_id: refId,
         paid_at: new Date().toISOString(),
@@ -94,14 +105,19 @@ export async function GET(request: NextRequest) {
       })
       .eq('id', orderId);
 
-    await supabaseAdmin.from('payment_logs').insert({
+    if (updateError) {
+      console.error('Failed to update order status:', updateError);
+      // Log but don't fail - payment was verified
+    }
+
+    await supabaseAdmin().from('payment_logs').insert({
       order_id: orderId,
       event: 'payment_verified',
       payload: verifyResponse,
     });
 
-    // Also create/update registration_request if needed
-    await supabaseAdmin.from('registration_requests').upsert({
+    // Create/update registration request
+    await supabaseAdmin().from('registration_requests').upsert({
       course_id: order.course_id,
       phone_number: order.phone_number,
       student_name: order.student_name,
@@ -115,8 +131,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${frontendUrl}success&orderId=${orderId}`);
   } catch (error) {
     console.error('Callback error:', error);
-    
-    await supabaseAdmin.from('payment_logs').insert({
+
+    await supabaseAdmin().from('payment_logs').insert({
       order_id: orderId,
       event: 'callback_error',
       payload: { error: String(error), authority, status },

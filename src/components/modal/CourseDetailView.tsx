@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Monitor, CalendarClock, Users, Info, ChevronDown, ChevronUp, CreditCard, Tag, GraduationCap, BookOpen, Target, Shield, Clock } from 'lucide-react';
-import { Course, OrderPricingResult, InstallmentItem } from '@/src/types';
-import { formatPrice, formatDuration, formatJalaliDate, getModeLabel, getModeIcon, calculateInstallmentPlan, getAvailableModes } from '@/src/lib/utils';
+import { MapPin, Monitor, CalendarClock, Users, Info, CreditCard, Tag, GraduationCap, BookOpen, Target, Shield, Clock } from 'lucide-react';
+import { Course } from '@/src/types';
+import { formatPrice, formatDuration, formatJalaliDate, calculateInstallmentPlan, getAvailableModes } from '@/src/lib/utils';
 import { cn } from '@/src/lib/utils';
 import type { PaymentMode } from '@/src/types';
 
@@ -16,16 +15,6 @@ interface CourseDetailViewProps {
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
 }
-
-const INSTALLMENT_LABELS = [
-  'پیش‌پرداخت',
-  'یک ماه بعد از ثبت‌نام',
-  'دو ماه بعد از ثبت‌نام',
-  'سه ماه بعد از ثبت‌نام',
-  'چهار ماه بعد از ثبت‌نام',
-  'پنج ماه بعد از ثبت‌نام',
-  'شش ماه بعد از ثبت‌نام',
-];
 
 const modeConfigs = {
   in_person: {
@@ -55,8 +44,8 @@ const modeConfigs = {
 } as const;
 
 function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { course: Course; mode: 'in_person' | 'online'; paymentMode: PaymentMode; onPaymentModeChange: (mode: PaymentMode) => void }) {
-  const plan = calculateInstallmentPlan(course, mode, paymentMode);
   const config = modeConfigs[mode];
+  const plan = calculateInstallmentPlan(course, mode, paymentMode);
   const originalPrice = plan.originalAmount;
   const discountedPrice = plan.baseAmount;
   const discountPercent = plan.discountPercent;
@@ -191,7 +180,7 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
                     className={cn(
                       'grid grid-cols-[auto_1fr_auto] gap-4 px-4 py-3 items-center border-b border-slate-100 last:border-b-0 transition-colors',
                       i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50',
-                      item.isDownPayment ? 'bg-gradient-to-r from-amber-50 to-white font-semibold' : ''
+                      item.isDownPayment ? 'bg-linear-to-r from-amber-50 to-white font-semibold' : ''
                     )}
                   >
                     <span className={cn('flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold', item.isDownPayment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500')}>
@@ -301,7 +290,7 @@ function InfoSection({ course, mode }: { course: Course; mode: 'in_person' | 'on
             <h4 className="font-semibold text-slate-900">استاد درس</h4>
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative flex-shrink-0 h-16 w-16 rounded-full overflow-hidden ring-2 ring-slate-200">
+            <div className="relative shrink-0 h-16 w-16 rounded-full overflow-hidden ring-2 ring-slate-200">
               <Image src={course.instructorImageUrl} alt={instructor} fill className="object-cover" sizes="64px" />
             </div>
             <div>
@@ -422,7 +411,7 @@ export default function CourseDetailView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-100"
+          className="relative aspect-4/3 w-full rounded-2xl overflow-hidden bg-slate-100"
         >
           <Image
             src={course.coverImageUrl}
@@ -432,7 +421,7 @@ export default function CourseDetailView({
             sizes="100vw"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur">
               {selectedMode === 'in_person' ? (
@@ -500,7 +489,7 @@ export default function CourseDetailView({
                   isSelected
                     ? `${config.activeText} shadow-lg`
                     : `${config.textColor} ${config.hoverBg}`,
-                  isSelected && `bg-gradient-to-br ${config.gradient}`,
+                  isSelected && `bg-linear-to-br ${config.gradient}`,
                 )}
               >
                 <config.icon className="h-4 w-4" aria-hidden="true" />

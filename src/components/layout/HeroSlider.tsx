@@ -118,12 +118,12 @@ function SlideImage({
           decoding="async"
           fetchPriority={priority ? 'high' : 'auto'}
           draggable={false}
-          className="h-full w-full select-none object-cover object-center [transform:translateZ(0)]"
+          className="h-full w-full select-none object-cover object-center transform:translateZ(0)"
         />
       </picture>
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 bg-gradient-to-b',
+          'pointer-events-none absolute inset-0 bg-linear-to-b',
           slide.overlayClassName ?? 'from-white/60 via-white/15 to-white/60'
         )}
       />
@@ -195,7 +195,11 @@ export default function HeroSlider({
 
     const diff = pointerStartX.current - e.clientX;
     if (Math.abs(diff) > SWIPE_THRESHOLD) {
-      diff > 0 ? goNext() : goPrev();
+      if (diff > 0) {
+        goNext();
+      } else {
+        goPrev();
+      }
     }
 
     pointerStartX.current = null;
@@ -251,7 +255,7 @@ export default function HeroSlider({
         </div>
 
         {/* Content */}
-        <div className="absolute inset-0 z-[3] flex items-center justify-center">
+        <div className="absolute inset-0 z-3 flex items-center justify-center">
           <div className="mx-auto w-full px-4 sm:px-6 lg:px-10">
             <div className="mx-auto max-w-4xl text-center">
               {currentSlide.title ? (

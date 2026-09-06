@@ -75,20 +75,20 @@ export default function CourseList({ courses, isLoading, onRegisterClick }: Cour
           >
             <span
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-              className="flex items-center justify-start gap-2 bg-gradient-to-l from-indigo-700 via-violet-700 to-fuchsia-700 bg-clip-text text-3xl leading-tight text-transparent md:text-5xl"
+              className="flex items-center justify-start gap-2 bg-linear-to-l from-indigo-700 via-violet-700 to-fuchsia-700 bg-clip-text text-3xl leading-tight text-transparent md:text-5xl"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 shadow-lg">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-600 via-violet-600 to-fuchsia-600 shadow-lg">
                 <GraduationCap className="h-6 w-6 text-white" />
               </span>
               دوره‌های آکادمی تارگت
             </span>
             <span className="flex flex-row-reverse items-center justify-start gap-2 text-sm font-semibold text-slate-600 md:text-base">
               مسیر یادگیری حرفه‌ای خود را همین‌جا شروع کنید
-              <span className="inline-block h-2 w-2 rounded-full bg-gradient-to-l from-fuchsia-500 to-amber-500" />
+              <span className="inline-block h-2 w-2 rounded-full bg-linear-to-l from-fuchsia-500 to-amber-500" />
             </span>
           </motion.h2>
 
-          <span className="mt-4 block h-1.5 w-40 rounded-full bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 md:w-64 xl:w-80" />
+          <span className="mt-4 block h-1.5 w-40 rounded-full bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 md:w-64 xl:w-80" />
         </motion.header>
 
         <ul role="list" aria-label="دوره‌های آموزشی" className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">

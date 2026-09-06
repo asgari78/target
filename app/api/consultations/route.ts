@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/src/lib/server/supabaseAdmin';
 
 export const runtime = 'nodejs';
 
-interface CreateReservationRequest {
+interface CreateConsultationRequest {
   courseId: string;
   studentName: string;
   phoneNumber: string;
@@ -12,17 +12,17 @@ interface CreateReservationRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateReservationRequest = await request.json();
+    const body: CreateConsultationRequest = await request.json();
 
     // Validate required fields
     if (!body.courseId || !body.studentName || !body.phoneNumber || !body.registrationType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch course details
+    // Fetch course to check availability
     const { data: course, error: courseError } = await supabaseAdmin()
       .from('courses')
-      .select('*')
+      .select('id, title, in_person_available, online_available')
       .eq('id', body.courseId)
       .eq('is_active', true)
       .single();
@@ -40,63 +40,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This mode is not available for this course' }, { status: 400 });
     }
 
-    // Create reservation order (free, no payment)
-    const { data: order, error: orderError } = await supabaseAdmin()
-      .from('orders')
+    // Create consultation request
+    const { data: consultation, error: consultationError } = await supabaseAdmin()
+      .from('registration_requests')
       .insert({
         course_id: body.courseId,
         phone_number: body.phoneNumber,
         student_name: body.studentName,
         registration_type: body.registrationType,
-        payment_mode: 'cash',
-        base_amount: 0,
-        original_amount: null,
-        discount_percent: 0,
-        interest_percent: 0,
-        total_amount: 0,
-        installments_count: 1,
-        installment_index: 1,
-        status: 'paid', // Reservation is considered "paid" (free)
-        is_reservation: true,
-        paid_at: new Date().toISOString(),
+        payment_mode: 'cash', // Consultation is free, payment mode not applicable
+        status: 'new',
       })
       .select()
       .single();
 
-    if (orderError) {
-      if (orderError.code === '23505') {
-        return NextResponse.json({ error: 'This phone number already has a reservation for this course' }, { status: 409 });
+    if (consultationError) {
+      if (consultationError.code === '23505') {
+        return NextResponse.json({ error: 'This phone number already has a consultation request for this course' }, { status: 409 });
       }
-      console.error('Reservation creation error:', orderError);
-      return NextResponse.json({ error: 'Failed to create reservation' }, { status: 500 });
+      console.error('Consultation creation error:', consultationError);
+      return NextResponse.json({ error: 'Failed to create consultation request' }, { status: 500 });
     }
 
-    // Log reservation
+    // Log consultation
     await supabaseAdmin().from('payment_logs').insert({
-      order_id: order.id,
-      event: 'reservation_created',
+      order_id: consultation.id,
+      event: 'consultation_created',
       payload: { courseId: body.courseId, registrationType: body.registrationType },
-    });
-
-    // Also create registration request
-    await supabaseAdmin().from('registration_requests').upsert({
-      course_id: body.courseId,
-      phone_number: body.phoneNumber,
-      student_name: body.studentName,
-      registration_type: body.registrationType,
-      payment_mode: 'cash',
-      status: 'new',
-    }, {
-      onConflict: 'course_id,phone_number',
     });
 
     return NextResponse.json({
       success: true,
-      orderId: order.id,
-      message: 'رزرو رایگان با موفقیت ثبت شد',
+      consultationId: consultation.id,
+      message: 'درخواست مشاوره با موفقیت ثبت شد',
     });
   } catch (error) {
-    console.error('Create reservation error:', error);
+    console.error('Create consultation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

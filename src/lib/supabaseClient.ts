@@ -7,4 +7,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('هشدار: متغیرهای محیطی Supabase به درستی تنظیم نشده‌اند.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export { supabaseClient };

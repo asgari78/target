@@ -147,7 +147,7 @@ export default function BackgroundEffects() {
         style={{
           transform: `translate(${combinedX * 30}px, ${combinedY * 30}px)`,
         }}
-        className="absolute top-[-15%] left-[-15%] w-[600px] h-[600px] rounded-full bg-navy-300/20 blur-[120px] mix-blend-multiply pointer-events-none"
+        className="absolute top-[-15%] left-[-15%] w-150 h-150 rounded-full bg-navy-300/20 blur-[120px] mix-blend-multiply pointer-events-none"
         aria-hidden="true"
       />
 
@@ -166,7 +166,7 @@ export default function BackgroundEffects() {
         style={{
           transform: `translate(${combinedX * -40}px, ${combinedY * -40}px)`,
         }}
-        className="absolute bottom-[-15%] right-[-15%] w-[700px] h-[700px] rounded-full bg-gold-300/15 blur-[140px] mix-blend-multiply pointer-events-none"
+        className="absolute bottom-[-15%] right-[-15%] w-175 h-175 rounded-full bg-gold-300/15 blur-[140px] mix-blend-multiply pointer-events-none"
         aria-hidden="true"
       />
 
@@ -184,7 +184,7 @@ export default function BackgroundEffects() {
         style={{
           transform: `translate(${combinedX * 25}px, ${combinedY * 25}px)`,
         }}
-        className="absolute top-[30%] left-[25%] w-[500px] h-[500px] rounded-full bg-navy-400/15 blur-[120px] mix-blend-multiply pointer-events-none"
+        className="absolute top-[30%] left-[25%] w-125 h-125 rounded-full bg-navy-400/15 blur-[120px] mix-blend-multiply pointer-events-none"
         aria-hidden="true"
       />
 
@@ -202,7 +202,7 @@ export default function BackgroundEffects() {
         style={{
           transform: `translate(${combinedX * -35}px, ${combinedY * -35}px)`,
         }}
-        className="absolute bottom-[20%] right-[30%] w-[400px] h-[400px] rounded-full bg-gold-400/10 blur-[100px] mix-blend-multiply pointer-events-none"
+        className="absolute bottom-[20%] right-[30%] w-100 h-100 rounded-full bg-gold-400/10 blur-[100px] mix-blend-multiply pointer-events-none"
         aria-hidden="true"
       />
 
@@ -233,7 +233,7 @@ export default function BackgroundEffects() {
         ))}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-navy-950/10 via-transparent to-navy-950/10 pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-0 bg-linear-to-b from-navy-950/10 via-transparent to-navy-950/10 pointer-events-none" aria-hidden="true" />
     </div>
   );
 }

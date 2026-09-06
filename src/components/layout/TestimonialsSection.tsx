@@ -121,7 +121,7 @@ export default function TestimonialsSection() {
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
               className="text-[1.55rem] leading-tight md:text-4xl"
             >
-              <span className="bg-gradient-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
                 نظرات دانش‌آموزان تارگت
               </span>
             </h3>
@@ -140,8 +140,8 @@ export default function TestimonialsSection() {
             className="
               flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-3
               snap-x snap-mandatory
-              [scrollbar-gutter:stable]
-              md:[scrollbar-width:auto] [scrollbar-width:none]
+              scrollbar-gutter:stable
+              md:scrollbar-width:auto scrollbar-width:none
             "
             style={{
               WebkitOverflowScrolling: 'touch',
@@ -156,7 +156,7 @@ export default function TestimonialsSection() {
                 transition={{ duration: 0.35, delay: index * 0.04 }}
                 className="
                   snap-start shrink-0
-                  w-[86%] xs:w-[78%] sm:w-[60%] md:w-[380px]
+                  w-[86%] xs:w-[78%] sm:w-[60%] md:w-95
                   rounded-xl md:rounded-2xl border border-slate-200 bg-white
                   p-3 md:p-4 shadow-sm
                 "

@@ -1,14 +1,24 @@
-const ZARINPAL_MERCHANT_ID = process.env.ZARINPAL_MERCHANT_ID!;
-const ZARINPAL_SANDBOX = process.env.ZARINPAL_SANDBOX === 'true';
-const NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL!;
+function getConfig() {
+  const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+  const sandbox = process.env.ZARINPAL_SANDBOX === 'true';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-if (!ZARINPAL_MERCHANT_ID || !NEXT_PUBLIC_SITE_URL) {
-  throw new Error('Missing Zarinpal or site URL environment variables');
+  if (!merchantId || !siteUrl) {
+    throw new Error('Missing Zarinpal or site URL environment variables');
+  }
+
+  const baseUrl = sandbox
+    ? 'https://sandbox.zarinpal.com/pg/v4/payment'
+    : 'https://api.zarinpal.com/pg/v4/payment';
+
+  return { merchantId, sandbox, siteUrl, baseUrl };
 }
 
-const ZARINPAL_BASE_URL = ZARINPAL_SANDBOX
-  ? 'https://sandbox.zarinpal.com/pg/v4/payment'
-  : 'https://api.zarinpal.com/pg/v4/payment';
+function getPaymentBaseUrl(sandbox: boolean): string {
+  return sandbox
+    ? 'https://sandbox.zarinpal.com/pg/StartPay'
+    : 'https://www.zarinpal.com/pg/StartPay';
+}
 
 export interface ZarinpalRequestResponse {
   data?: {
@@ -57,20 +67,21 @@ export interface PaymentVerifyParams {
   authority: string;
 }
 
-function buildCallbackUrl(path: string): string {
-  return `${NEXT_PUBLIC_SITE_URL}${path}`;
+function buildCallbackUrl(siteUrl: string, path: string): string {
+  return `${siteUrl}${path}`;
 }
 
 export async function requestPayment(params: PaymentRequestParams): Promise<ZarinpalRequestResponse> {
+  const { merchantId, siteUrl, baseUrl } = getConfig();
   const body = {
-    merchant_id: ZARINPAL_MERCHANT_ID,
+    merchant_id: merchantId,
     amount: params.amount,
     description: params.description,
-    callback_url: buildCallbackUrl(params.callbackUrl),
+    callback_url: buildCallbackUrl(siteUrl, params.callbackUrl),
     metadata: params.metadata,
   };
 
-  const response = await fetch(`${ZARINPAL_BASE_URL}/request.json`, {
+  const response = await fetch(`${baseUrl}/request.json`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -87,13 +98,14 @@ export async function requestPayment(params: PaymentRequestParams): Promise<Zari
 }
 
 export async function verifyPayment(params: PaymentVerifyParams): Promise<ZarinpalVerifyResponse> {
+  const { merchantId, baseUrl } = getConfig();
   const body = {
-    merchant_id: ZARINPAL_MERCHANT_ID,
+    merchant_id: merchantId,
     amount: params.amount,
     authority: params.authority,
   };
 
-  const response = await fetch(`${ZARINPAL_BASE_URL}/verify.json`, {
+  const response = await fetch(`${baseUrl}/verify.json`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -110,8 +122,21 @@ export async function verifyPayment(params: PaymentVerifyParams): Promise<Zarinp
 }
 
 export function getPaymentUrl(authority: string): string {
-  const base = ZARINPAL_SANDBOX
-    ? 'https://sandbox.zarinpal.com/pg/StartPay'
-    : 'https://www.zarinpal.com/pg/StartPay';
+  const { sandbox } = getConfig();
+  const base = getPaymentBaseUrl(sandbox);
   return `${base}/${authority}`;
+}
+
+/**
+ * Convert Tomans to Rials for Zarinpal (1 Toman = 10 Rials)
+ */
+export function formatAmountForZarinpal(amountInTomans: number): number {
+  return Math.round(amountInTomans * 10);
+}
+
+/**
+ * Convert Rials to Tomans from Zarinpal
+ */
+export function formatAmountFromZarinpal(amountInRials: number): number {
+  return Math.round(amountInRials / 10);
 }

@@ -1,6 +1,7 @@
 export type PaymentMode = 'cash' | 'installment';
 export type RegistrationType = 'in_person' | 'online';
 export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'failed';
+export type AttendanceMode = 'in_person' | 'online';
 
 export interface Course {
   id: string;
@@ -23,20 +24,56 @@ export interface Course {
   startDate: string | null;
   locationInPerson: string;
   locationOnline: string;
+  /** @deprecated Use courseOfferings for pricing */
   priceInPerson: number;
+  /** @deprecated Use courseOfferings for pricing */
   priceOnline: number;
-  /** Pre-discount in-person price (falls back to priceInPerson when null). */
+  /** @deprecated Use courseOfferings for pricing */
   originalPriceInPerson: number | null;
-  /** Discount percentage (0-100) applied for in-person. */
+  /** @deprecated Use courseOfferings for pricing */
   discountPercentInPerson: number;
+  /** @deprecated Use courseOfferings for pricing */
   originalPriceOnline: number | null;
+  /** @deprecated Use courseOfferings for pricing */
   discountPercentOnline: number;
+  /** @deprecated Use courseOfferings for pricing */
   installmentsCount: number;
+  /** @deprecated Use courseOfferings for pricing */
   installmentInterestPct: number;
   inPersonAvailable: boolean;
   onlineAvailable: boolean;
   isActive: boolean;
   sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  /** New pricing model - offerings per attendance mode */
+  courseOfferings?: CourseOffering[];
+}
+
+export interface CourseOffering {
+  id: string;
+  courseId: string;
+  attendanceMode: AttendanceMode;
+  cashPriceBeforeDiscount: number;
+  cashPriceAfterDiscount: number;
+  installmentsCount: number;
+  installmentInterestPct: number;
+  isAvailable: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  installments?: Installment[];
+}
+
+export interface Installment {
+  id: string;
+  offeringId: string;
+  sequenceNumber: number;
+  label: string;
+  amountBeforeDiscount: number;
+  amountAfterDiscount: number;
+  dueMonthOffset: number;
+  isDownPayment: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -78,15 +115,43 @@ export interface CourseRow {
   updated_at: string;
 }
 
-export interface Installment {
+export interface CourseOfferingRow {
+  id: string;
+  course_id: string;
+  attendance_mode: AttendanceMode;
+  cash_price_before_discount: number;
+  cash_price_after_discount: number;
+  installments_count: number;
+  installment_interest_pct: number;
+  is_available: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InstallmentRow {
+  id: string;
+  offering_id: string;
+  sequence_number: number;
+  label: string;
+  amount_before_discount: number;
+  amount_after_discount: number;
+  due_month_offset: number;
+  is_down_payment: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Legacy types - kept for backward compatibility */
+export interface LegacyInstallment {
   label: string;
   amount: number;
 }
 
-export interface InstallmentPlan {
+export interface LegacyInstallmentPlan {
   total: number;
   perInstallment: number;
-  items: Installment[];
+  items: LegacyInstallment[];
 }
 
 export interface InstallmentItem {
@@ -200,6 +265,19 @@ export interface CreateReservationRequest {
 export interface CreateReservationResponse {
   success: boolean;
   orderId: string;
+  message: string;
+}
+
+export interface CreateConsultationRequest {
+  courseId: string;
+  studentName: string;
+  phoneNumber: string;
+  registrationType: RegistrationType;
+}
+
+export interface CreateConsultationResponse {
+  success: boolean;
+  consultationId: string;
   message: string;
 }
 

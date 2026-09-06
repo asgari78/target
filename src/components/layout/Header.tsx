@@ -19,6 +19,7 @@ export default function Header() {
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
@@ -36,7 +37,10 @@ export default function Header() {
     const currentBodyPaddingRight =
       Number.parseFloat(window.getComputedStyle(body).paddingRight) || 0;
 
-    setScrollbarWidth(calculatedScrollbarWidth);
+    // Set scrollbar width in a timeout to avoid synchronous setState in effect
+    const timeoutId = setTimeout(() => {
+      setScrollbarWidth(calculatedScrollbarWidth);
+    }, 0);
 
     html.style.overflow = 'hidden';
     body.style.overflow = 'hidden';
@@ -52,6 +56,7 @@ export default function Header() {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('keydown', handleKeyDown);
       html.style.overflow = previousHtmlOverflow;
       body.style.overflow = previousBodyOverflow;
@@ -186,7 +191,7 @@ export default function Header() {
         style={{ paddingRight: isMobileMenuOpen ? scrollbarWidth : 0 }}
       >
         <nav
-          className="mx-auto flex h-14 w-full max-w-[1200px] items-center px-4 sm:px-5"
+          className="mx-auto flex h-14 w-full max-w-300 items-center px-4 sm:px-5"
           aria-label="منوی اصلی"
         >
           <div className="flex min-w-0 flex-1 h-full items-center justify-between">
@@ -243,17 +248,17 @@ export default function Header() {
                 <motion.span
                   animate={isMobileMenuOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
                   transition={{ duration: 0.22 }}
-                  className="absolute left-0 top-0 h-[2px] w-6 rounded bg-slate-900"
+                  className="absolute left-0 top-0 h-0.5 w-6 rounded bg-slate-900"
                 />
                 <motion.span
                   animate={isMobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute left-0 top-[8px] h-[2px] w-6 rounded bg-slate-900"
+                  className="absolute left-0 top-2 h-0.5 w-6 rounded bg-slate-900"
                 />
                 <motion.span
                   animate={isMobileMenuOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }}
                   transition={{ duration: 0.22 }}
-                  className="absolute left-0 top-[16px] h-[2px] w-6 rounded bg-slate-900"
+                  className="absolute left-0 top-4 h-0.5 w-6 rounded bg-slate-900"
                 />
               </span>
             </button>
