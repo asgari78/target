@@ -25,7 +25,7 @@ export default function CourseList({ courses, isLoading, onRegisterClick }: Cour
                 transition={{ duration: 0.4, delay: i * 0.05, ease: 'easeOut' }}
                 className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
               >
-                <div className="aspect-[16/10] w-full animate-pulse bg-slate-100" />
+                <div className="aspect-square w-full animate-pulse bg-slate-100" />
                 <div className="space-y-3 p-4 sm:p-5">
                   <div className="h-5 w-3/4 rounded-xl bg-slate-100 animate-pulse" />
                   <div className="h-6 w-36 rounded-full bg-amber-100 animate-pulse" />
