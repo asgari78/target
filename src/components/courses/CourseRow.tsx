@@ -2,8 +2,19 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BadgePercent, MapPin, Monitor } from 'lucide-react';
-import { Course } from '@/src/types';
+import {
+  ArrowLeft,
+  BadgePercent,
+  BookOpenText,
+  CalendarClock,
+  Clock3,
+  Layers3,
+  MapPin,
+  Monitor,
+  Sparkles,
+  UserSquare2,
+} from 'lucide-react';
+import { Course, CourseOffering } from '@/src/types';
 import { getAvailableModes } from '@/src/lib/utils';
 
 interface CourseRowProps {
@@ -12,296 +23,235 @@ interface CourseRowProps {
   onRegisterClick: (course: Course, type: 'in_person' | 'online') => void;
 }
 
+function toPersianDigits(value: string | number) {
+  const map: Record<string, string> = {
+    '0': '۰',
+    '1': '۱',
+    '2': '۲',
+    '3': '۳',
+    '4': '۴',
+    '5': '۵',
+    '6': '۶',
+    '7': '۷',
+    '8': '۸',
+    '9': '۹',
+  };
+  return String(value).replace(/[0-9]/g, (w) => map[w] || w);
+}
+
+function formatPrice(price: number) {
+  return `${toPersianDigits(new Intl.NumberFormat('fa-IR').format(price))} تومان`;
+}
+
+function choosePrimaryMode(course: Course): 'in_person' | 'online' {
+  const modes = getAvailableModes(course);
+  if (modes.includes('in_person')) return 'in_person';
+  if (modes.includes('online')) return 'online';
+  return 'in_person';
+}
+
+function buildModeLabel(course: Course) {
+  if (course.inPersonAvailable && course.onlineAvailable) return 'حضوری / آنلاین';
+  if (course.inPersonAvailable) return 'حضوری';
+  if (course.onlineAvailable) return 'آنلاین';
+  return 'در حال تکمیل';
+}
+
+function getSessionDurationText(course: Course) {
+  const possible = (course as any).sessionDuration as string | null | undefined; // چون در SQL هست ولی در Course interface نیست
+  if (possible && possible.trim()) return possible.trim();
+  return `${toPersianDigits(course.sessionHours)} ساعت`;
+}
+
+function getOfferingByMode(course: Course, mode: 'in_person' | 'online'): CourseOffering | null {
+  if (!course.courseOfferings?.length) return null;
+  return (
+    course.courseOfferings
+      .filter((o) => o.isAvailable)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .find((o) => o.attendanceMode === mode) ?? null
+  );
+}
+
+function getBestOffering(course: Course, primaryMode: 'in_person' | 'online') {
+  const primary = getOfferingByMode(course, primaryMode);
+  if (primary) return primary;
+
+  const fallback = course.courseOfferings?.filter((o) => o.isAvailable).sort((a, b) => a.sortOrder - b.sortOrder)?.[0];
+  return fallback ?? null;
+}
+
 export default function CourseRow({ course, index, onRegisterClick }: CourseRowProps) {
-  const availableModes = getAvailableModes(course);
-  const primaryMode = availableModes[0] || 'in_person';
+  const primaryMode = choosePrimaryMode(course);
+  const modeLabel = buildModeLabel(course);
+
+  const sessionDurationText = getSessionDurationText(course);
+  const sessionsCountText = `${toPersianDigits(course.sessionsCount)} جلسه`;
+  const gradeText = `پایه ${course.grade}`;
+  const scheduleText = course.scheduleText?.trim() ? course.scheduleText : 'برنامه‌ریزی منعطف';
+  const instructorName = course.instructorName?.trim() ? course.instructorName : 'اساتید آکادمی';
+
+  const bestOffering = getBestOffering(course, primaryMode);
+
+  const hasOfferings = Boolean(bestOffering);
+  const cashPriceAfter = hasOfferings ? bestOffering!.cashPriceAfterDiscount : null;
+  const cashPriceBefore = hasOfferings ? bestOffering!.cashPriceBeforeDiscount : null;
+  const hasDiscount = hasOfferings && !!cashPriceBefore && cashPriceBefore > cashPriceAfter!;
+  const installmentsCount = hasOfferings ? bestOffering!.installmentsCount : 0;
+  const installmentInterest = hasOfferings ? bestOffering!.installmentInterestPct : 0;
 
   return (
     <motion.li
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.06, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 16, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.42, delay: index * 0.045, ease: [0.22, 1, 0.36, 1] }}
       className="group h-full"
     >
-<button
-  type="button"
-  onClick={() => onRegisterClick(course, primaryMode)}
-  className="
-    group/card flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-3xl
-    border border-slate-200 bg-white text-right shadow-sm
-    transition-all duration-300
-    hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl
-    focus:outline-none
-    focus-visible:ring-2 focus-visible:ring-indigo-300
-  "
->
+      <article
+        className="
+          relative flex h-full flex-col overflow-hidden rounded-2xl
+          border border-slate-200/90 bg-white/90 text-right shadow-sm
+          backdrop-blur-[2px]
+          transition-all duration-300
+          hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35
+          hover:border-slate-300/95
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none absolute inset-0 z-[1]
+            bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.16),transparent_60%),
+                radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.10),transparent_60%)]
+          "
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
+        />
 
-{/* Image */}
-<div className="group/poster relative isolate aspect-square w-full shrink-0 overflow-hidden bg-slate-100">
-  {course.coverImageUrl ? (
-    <Image
-      src={course.coverImageUrl}
-      alt={course.title}
-      fill
-      className="object-cover transition-transform duration-500 group-hover:scale-105"
-      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-    />
-  ) : (
-    <div className="flex h-full items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
-      <span className="text-sm font-medium text-slate-500">
-        بدون تصویر
-      </span>
-    </div>
-  )}
-
-  {/* تیرگی دائمی روی قسمت بالای پوستر */}
-  <div
-    aria-hidden="true"
-    className="pointer-events-none absolute inset-x-0 top-0 z-10 h-full bg-linear-to-b from-black/35 via-black/15 to-transparent"
-  />
-
-{/* فریم گرافیکی پوستر */}
-<div
-  aria-hidden="true"
-  className="
-    pointer-events-none absolute inset-0 z-20
-    transform-gpu opacity-100
-    will-change-[opacity,transform]
-    transition-[opacity,transform]
-    duration-700
-    ease-[cubic-bezier(0.22,1,0.36,1)]
-    group-hover/poster:scale-[1.015]
-    group-hover/poster:opacity-0
-    group-active/card:scale-[1.015]
-    group-active/card:opacity-0
-    motion-reduce:transition-none
-  "
->
-
-  {/* حاشیه گرادیانی؛ مرکز کاملاً شفاف است */}
-  <div
-    className="absolute inset-2 rounded-[1.4rem] p-[3px] sm:p-1"
-    style={{
-      background:
-        'linear-gradient(135deg, #a5b4fc 0%, #6366f1 22%, rgba(255,255,255,0.8) 48%, #c084fc 76%, #7c3aed 100%)',
-      maskImage:
-        'linear-gradient(#fff 0 0), linear-gradient(#fff 0 0)',
-      maskClip: 'content-box, border-box',
-      maskComposite: 'exclude',
-      WebkitMaskImage:
-        'linear-gradient(#fff 0 0), linear-gradient(#fff 0 0)',
-      WebkitMaskClip: 'content-box, border-box',
-      WebkitMaskComposite: 'xor',
-    }}
-  />
-
-  {/* لبه روشن داخلی */}
-  <div
-    className="
-      absolute inset-[14px] rounded-[1.05rem]
-      border border-white/65
-      shadow-[0_0_12px_rgba(99,102,241,0.3)]
-    "
-  />
-
-  {/* المان منحنی بالا ـ چپ */}
-  <div
-    className="
-      absolute top-0 left-0
-
-overflow-hidden
-rounded-br-[85%]
-      border-r-[3px] border-b-[3px] border-indigo-100/90
-      bg-linear-to-br from-indigo-950 via-indigo-600 to-violet-400
-      shadow-[5px_5px_20px_rgba(49,46,129,0.35)]
-    "
-  >
-    {/* درخشش نرم */}
-    <span
-      className="
-        absolute -top-5 -left-5
-        h-[85%] w-[85%] rounded-full
-        bg-violet-300/50 blur-xl
-      "
-    />
-
-    {/* حلقه پهن منحنی */}
-    <span
-      className="
-        absolute -top-[38%] -left-[38%]
-        h-[125%] w-[125%]
-        rounded-full border-[10px] border-white/20
-        sm:border-[14px]
-      "
-    />
-
-    {/* قوس روشن داخلی */}
-    <span
-      className="
-        absolute -top-[22%] -left-[22%]
-        h-[85%] w-[85%]
-        rounded-full border-2 border-indigo-100/80
-      "
-    />
-
-    {/* نگین روشن */}
-    <span
-      className="
-        absolute top-[24%] left-[24%]
-        h-4 w-4 rotate-45 rounded h-4 w-4 rotate-45 rounded-[5px]
-        border border-white/90 bg-linear-to-br from-white to-indigo-200
-        shadow-[0_0_16px_rgba(255,255,255,0.65)]
-        sm:h-5 sm:w-5
-      "
-    />
-
-    {/* نقطه کوچک تزئینی */}
-    <span
-      className="
-        absolute top-[20%] left-[53%]
-        h-1.5 w-1.5 rounded-full bg-white/90
-      "
-    />
-  </div>
-
-  {/* المان منحنی پایین ـ راست */}
-{/* المان منحنی پایین ـ راست */}
-<div
-  className="
-    absolute right-2 bottom-2
-    h-[20%] w-[20%]
-    overflow-hidden
-    rounded-tl-[100%]
-    border-t-2 border-l-2 border-fuchsia-100/65
-    bg-linear-to-tl
-    from-indigo-950/80
-    via-violet-600/55
-    to-fuchsia-400/35
-    opacity-80
-    shadow-[-3px_-3px_14px_rgba(88,28,135,0.24)]
-  "
->
-  {/* درخشش داخلی */}
-  <span
-    className="
-      absolute -right-3 -bottom-3
-      h-[80%] w-[80%]
-      rounded-full
-      bg-fuchsia-300/25
-      blur-md
-    "
-  />
-
-  {/* حلقه‌ی منحنی */}
-  <span
-    className="
-      absolute -right-[42%] -bottom-[42%]
-      h-[135%] w-[135%]
-      rounded-full
-      border-[5px] border-white/20
-      sm:border-[7px]
-    "
-  />
-
-  {/* قوس روشن داخلی */}
-  <span
-    className="
-      absolute -right-[20%] -bottom-[20%]
-      h-[82%] w-[82%]
-      rounded-full
-      border border-fuchsia-100/65
-    "
-  />
-
-  {/* نگین تزئینی */}
-  <span
-    className="
-      absolute right-[23%] bottom-[23%]
-      h-3 w-3 rotate-45
-      rounded-[4px]
-      border border-white/80
-      bg-linear-to-br from-white/90 to-fuchsia-200/70
-      shadow-[0_0_10px_rgba(255,255,255,0.55)]
-      sm:h-4 sm:w-4
-    "
-  />
-</div>
-
-</div>
-
-
-  {/* نشان‌های نوع برگزاری */}
-  <div className="absolute top-3 right-3 z-30 flex flex-wrap gap-1.5">
-    {course.inPersonAvailable && (
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/95 px-2.5 py-1 text-xs font-semibold text-navy-700 shadow-md backdrop-blur-sm">
-        <MapPin className="h-3 w-3" />
-        حضوری
-      </span>
-    )}
-
-    {course.onlineAvailable && (
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/95 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-md backdrop-blur-sm">
-        <Monitor className="h-3 w-3" />
-        آنلاین
-      </span>
-    )}
-  </div>
-
-  {/* افکت ملایم پایین پوستر هنگام هاور */}
-  <div
-    aria-hidden="true"
-    className="
-      pointer-events-none absolute inset-0 z-10
-      bg-linear-to-t from-black/20 via-transparent to-transparent
-      opacity-0 transition-opacity duration-300
-      group-hover:opacity-100
-    "
-  />
-</div>
-
-
-
-        {/* Content */}
-        <div className="flex flex-1 flex-col p-4 sm:p-5">
-          <div className="flex flex-1 flex-col gap-4">
-            <h3
-              className="text-base font-bold leading-7 text-slate-900 transition-colors group-hover:text-indigo-700 sm:text-lg"
-              style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-            >
-              {course.title}
-            </h3>
-
-            {/* Installment + attendance badges in one row */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 shadow-sm">
-                <BadgePercent className="h-3.5 w-3.5" />
-                <span>امکان خرید قسطی</span>
-              </span>
-
-              {course.inPersonAvailable && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50/60 px-2 py-1 text-[11px] font-medium text-indigo-700">
-                  <MapPin className="h-3 w-3" />
-                  حضوری
-                </span>
-              )}
-
-              {course.onlineAvailable && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50/60 px-2 py-1 text-[11px] font-medium text-emerald-700">
-                  <Monitor className="h-3 w-3" />
-                  آنلاین
-                </span>
-              )}
+        {/* Poster */}
+        <div className="relative z-[2] aspect-[1/1] w-full overflow-hidden bg-slate-100">
+          {course.coverImageUrl ? (
+            <Image
+              src={course.coverImageUrl}
+              alt={course.title}
+              fill
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={index < 4}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200">
+              <div className="flex flex-col items-center gap-1 text-slate-500">
+                <BookOpenText className="h-5 w-5" />
+                <span className="text-[10px] font-semibold sm:text-xs">بدون تصویر</span>
+              </div>
             </div>
+          )}
+
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+
+          {/* Desktop badges */}
+          <div className="absolute right-2 top-2 z-10 hidden items-center gap-1 sm:flex">
+            {course.inPersonAvailable && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-white/90 px-2 py-1 text-[10px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                <MapPin className="h-3 w-3 text-amber-500" />
+                حضوری
+              </span>
+            )}
+            {course.onlineAvailable && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-white/90 px-2 py-1 text-[10px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                <Monitor className="h-3 w-3 text-violet-600" />
+                آنلاین
+              </span>
+            )}
           </div>
 
-          <div className="mt-5">
-            <span className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-l from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 group-hover:from-indigo-700 group-hover:to-indigo-800 group-hover:shadow-lg">
-              <span>مشاهده جزئیات و ثبت‌نام</span>
-              <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+          <div className="absolute left-2 top-2 z-10 hidden sm:block">
+            <span className="inline-flex max-w-[8.5rem] items-center gap-1 truncate rounded-full border border-slate-900/10 bg-white/90 px-2 py-1 text-[10px] font-semibold text-slate-700 shadow-sm backdrop-blur">
+              <Sparkles className="h-3 w-3 text-amber-500" />
+              {gradeText}
+            </span>
+          </div>
+
+          {/* Mobile only */}
+          <div className="absolute right-1.5 top-1.5 z-10 sm:hidden">
+            <span className="inline-flex h-6 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50/95 px-2 text-[9px] font-extrabold text-amber-900 shadow-sm">
+              <BadgePercent className="h-3 w-3" />
+              قسطی
+            </span>
+          </div>
+
+          <div className="absolute bottom-1.5 left-1.5 z-10 sm:hidden">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-[2px]">
+              {course.inPersonAvailable && !course.onlineAvailable && <MapPin className="h-2.5 w-2.5 text-amber-300" />}
+              {!course.inPersonAvailable && course.onlineAvailable && <Monitor className="h-2.5 w-2.5 text-violet-300" />}
+              {course.inPersonAvailable && course.onlineAvailable && <Layers3 className="h-2.5 w-2.5 text-amber-300" />}
+              {modeLabel}
             </span>
           </div>
         </div>
-      </button>
+
+        {/* Body */}
+        <div className="relative z-[2] flex flex-1 flex-col p-2 sm:p-3">
+          <h3
+            style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+            className="
+              line-clamp-2 py-1 text-[13px] leading-5 text-slate-900
+              transition-colors duration-300 group-hover:text-slate-950
+              sm:min-h-[2.7rem] sm:text-[15px] sm:leading-6 md:text-base
+            "
+            title={course.title}
+          >
+            {course.title}
+          </h3>
+
+
+          {/* Mobile compact line */}
+          <div className="py-1 flex items-center justify-between text-[10px] text-slate-600 sm:hidden">
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3 w-3 text-slate-500" />
+              {sessionDurationText}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <CalendarClock className="h-3 w-3 text-slate-500" />
+              {sessionsCountText}
+            </span>
+          </div>
+
+
+          {/* CTA */}
+          <div className="-mx-2 -mb-2 mt-2 sm:-mx-3 sm:-mb-3">
+            <button
+              type="button"
+              onClick={() => onRegisterClick(course, primaryMode)}
+              className="
+                group/cta inline-flex w-full items-center justify-center gap-1.5
+                rounded-t-xl rounded-b-[14px] border-t border-slate-300/70
+                bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
+                px-2 py-2.5 text-[11px] font-extrabold text-white
+                shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]
+                transition-all duration-300
+                hover:from-black hover:via-slate-900 hover:to-black
+                active:scale-[0.995]
+                sm:py-3 sm:text-xs
+              "
+              aria-label={`ثبت‌نام در دوره ${course.title}`}
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/90 text-black shadow-sm">
+                <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover/cta:-translate-x-0.5" />
+              </span>
+              مشاهده جزئیات و ثبت‌نام
+            </button>
+          </div>
+        </div>
+
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
+        />
+      </article>
     </motion.li>
   );
 }
