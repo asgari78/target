@@ -24,7 +24,7 @@ const supportInfo = {
     'پنج‌شنبه و جمعه: ساعت ۱۲ الی ۱۸',
 };
 
-const siteLogoSrc = 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logoTarget.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ29UYXJnZXQucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODQ1NjY0NywiZXhwIjoxNzk2MjMyNjQ3fQ.8Nyti_ZJyt5jscSSuSDwzljjA_Vzue4SlldGnYJLUUMvV_gwmzHn50flAomE6DQcgVR6-T9SUDnZ42uSKfHPEQ';
+const siteLogoSrc = 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logo-removebg.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ28tcmVtb3ZlYmcucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODg3MTQ3MiwiZXhwIjoxODIwNDA3NDcyfQ.08vjZt1Z8e9uAWO_3H1qH5cX1Srkx7CQifEQw00RzWvuhHT6CPSQmy4DxldmoEuywtWF_GwSC2ZXgHhRqKj6DA';
 
 const socialLinks = [
   {

@@ -116,7 +116,7 @@ export default function Header() {
               <div className="flex items-center justify-between px-4 pt-3">
                 <div className="h-11 w-11 overflow-hidden rounded-full ring-1 ring-slate-200">
                   <img
-                    src="https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logoTarget1.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ29UYXJnZXQxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODg0NTY5ODIsImV4cCI6MTc5NjIzMjk4Mn0.eBKpTjm-I9QG-gd1k0-y8m8mHo8KE13_aS22qbh55DRw3FQZFjH6V8_yK6xNLiv9yDizje5t5uQwqBs9drFmnA"
+                    src="https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logo-removebg.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ28tcmVtb3ZlYmcucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODg3MTQwMiwiZXhwIjoxODIwNDA3NDAyfQ.EchVhKDxJ0fqlOM7tpF7t-THUcUDUb0alGi9DEAzjab0OosLQSKxu3LjNkstHsUE_60wcITc_SRtAWVDJB-ZaQ"
                     alt="لوگوی تارگت آکادمی"
                     className="h-full w-full object-cover"
                   />
@@ -203,7 +203,7 @@ export default function Header() {
             >
               <div className="h-14 w-14 overflow-hidden">
                 <img
-                  src="https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logoTarget1.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ29UYXJnZXQxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODg0NTY5ODIsImV4cCI6MTc5NjIzMjk4Mn0.eBKpTjm-I9QG-gd1k0-y8m8mHo8KE13_aS22qbh55DRw3FQZFjH6V8_yK6xNLiv9yDizje5t5uQwqBs9drFmnA"
+                  src="https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logo-removebg.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ28tcmVtb3ZlYmcucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODg3MTQwMiwiZXhwIjoxODIwNDA3NDAyfQ.EchVhKDxJ0fqlOM7tpF7t-THUcUDUb0alGi9DEAzjab0OosLQSKxu3LjNkstHsUE_60wcITc_SRtAWVDJB-ZaQ"
                   alt="لوگوی تارگت آکادمی"
                   className="h-full w-full object-cover"
                 />
