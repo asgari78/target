@@ -84,7 +84,7 @@ export default function Header() {
           {/* Overlay */}
           <motion.div
             key="mobile-menu-overlay"
-            className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px] md:hidden"
+            className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px] sm:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -191,7 +191,7 @@ export default function Header() {
         style={{ paddingRight: isMobileMenuOpen ? scrollbarWidth : 0 }}
       >
         <nav
-          className="mx-auto flex h-14 w-full max-w-300 items-center px-4 sm:px-5"
+          className="mx-auto flex h-12 sm:h-14 w-full max-w-300 items-center px-2 sm:px-5"
           aria-label="منوی اصلی"
         >
           <div className="flex min-w-0 flex-1 h-full items-center justify-between">
@@ -201,7 +201,7 @@ export default function Header() {
               className="flex items-center h-full"
               aria-label="صفحه اصلی تارگت آکادمی"
             >
-              <div className="h-14 w-14 overflow-hidden">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 overflow-hidden">
                 <img
                   src="https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/sign/logo/logo-removebg.png?token=eyJraWQiOiI3MzNlMGYxMS0wNGYyLTQwZjEtYWQzYi1hZTlkYmM0NTdhOWMiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsb2dvL2xvZ28tcmVtb3ZlYmcucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4ODg3MTQwMiwiZXhwIjoxODIwNDA3NDAyfQ.EchVhKDxJ0fqlOM7tpF7t-THUcUDUb0alGi9DEAzjab0OosLQSKxu3LjNkstHsUE_60wcITc_SRtAWVDJB-ZaQ"
                   alt="لوگوی تارگت آکادمی"
@@ -210,7 +210,7 @@ export default function Header() {
               </div>
             </Link>
 
-            <div className="ms-auto me-4 hidden items-center gap-2 md:flex">
+            <div className="ms-auto me-4 hidden items-center gap-2 sm:flex">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -223,7 +223,7 @@ export default function Header() {
               ))}
             </div>
 
-            <div className="hidden shrink-0 items-center md:flex">
+            <div className="hidden shrink-0 items-center sm:flex">
               <a
                 href="tel:+982537741234"
                 className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100"
@@ -239,26 +239,26 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="group inline-flex h-10 w-10 items-center justify-center md:hidden"
+              className="group flex h-12 w-12 items-center justify-center sm:hidden"
               aria-label="باز کردن منو"
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
             >
-              <span className="relative block h-5 w-6">
+              <span className="relative h-6 w-6 gap-1 flex flex-col justify-center items-center">
                 <motion.span
-                  animate={isMobileMenuOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
+                  animate={isMobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
                   transition={{ duration: 0.22 }}
-                  className="absolute left-0 top-0 h-0.5 w-6 rounded bg-slate-900"
+                  className="h-0.5 w-5 rounded bg-slate-800"
                 />
                 <motion.span
                   animate={isMobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute left-0 top-2 h-0.5 w-6 rounded bg-slate-900"
+                  className="h-0.5 w-5 rounded bg-slate-800"
                 />
                 <motion.span
-                  animate={isMobileMenuOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }}
+                  animate={isMobileMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
                   transition={{ duration: 0.22 }}
-                  className="absolute left-0 top-4 h-0.5 w-6 rounded bg-slate-900"
+                  className="h-0.5 w-5 rounded bg-slate-800"
                 />
               </span>
             </button>
@@ -267,7 +267,7 @@ export default function Header() {
       </header>
 
       {/* Spacer با ارتفاع کمتر */}
-      <div className="h-[calc(3.5rem+env(safe-area-inset-top))]" aria-hidden="true" />
+      <div className="h-12 sm:h-14" aria-hidden="true" />
 
       {isMounted ? createPortal(mobileMenu, document.body) : null}
     </>

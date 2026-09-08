@@ -16,7 +16,7 @@ export interface Slide {
 const defaultSlides: Slide[] = [
   {
     id: 1,
-    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/course1PosterWider2.webp',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/course1Poster.webp',
     alt: 'موسسه آموزشی تارگت - کلاس‌های حضوری',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },
@@ -85,7 +85,7 @@ export default function HeroSlider({
   autoPlay = true,
   autoPlayInterval = 5000,
   className,
-  heightClassName = 'h-[26vh] sm:h-[28vh] md:h-[32vh] lg:h-[40vh] min-h-[28vh] max-h-[40vh]',
+  heightClassName = 'h-[24vh] sm:h-[30vh] md:h-[32vh] lg:h-[40vh] xl:h-[44vh] min-h-[24vh] max-h-[44vh]',
 }: HeroSliderProps) {
   const safeSlides = slides ?? [];
   const hasSlides = safeSlides.length > 0;
