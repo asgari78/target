@@ -131,7 +131,7 @@ export default function CourseRow({ course, index, onRegisterClick }: CourseRowP
         />
 
         {/* Poster */}
-        <div className="relative z-[2] aspect-[1/1] w-full overflow-hidden bg-slate-100">
+        <div className="relative z-[2] aspect-[1/1] w-full overflow-hidden bg-slate-100" onClick={() => onRegisterClick(course, primaryMode)}>
           {course.coverImageUrl ? (
             <Image
               src={course.coverImageUrl}
