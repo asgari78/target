@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 
 const navItems = [
   {
-    href: '#about',
+    href: '#contact',
     label: 'درباره ما',
   },
 ];

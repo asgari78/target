@@ -46,6 +46,7 @@ export interface Course {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  sessionDuration: string | null;
   /** New pricing model - offerings per attendance mode */
   courseOfferings?: CourseOffering[];
 }
@@ -99,6 +100,12 @@ export interface CourseRow {
   start_date: string | null;
   location_in_person: string;
   location_online: string;
+  in_person_available: boolean;
+  online_available: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
   price_in_person: number;
   price_online: number;
   original_price_in_person: number | null;
@@ -107,13 +114,9 @@ export interface CourseRow {
   discount_percent_online: number;
   installments_count: number;
   installment_interest_pct: number;
-  in_person_available: boolean;
-  online_available: boolean;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
+  session_duration: string | null;
 }
+
 
 export interface CourseOfferingRow {
   id: string;

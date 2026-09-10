@@ -23,7 +23,7 @@ export function mapCourse(row: CourseRow): Course {
     startDate: row.start_date,
     locationInPerson: row.location_in_person,
     locationOnline: row.location_online,
-    priceInPerson: 0, // ✅ جدید: از courseOfferings استفاده کنید
+    priceInPerson: 0,
     priceOnline: 0,
     originalPriceInPerson: null,
     discountPercentInPerson: 0,
@@ -37,7 +37,8 @@ export function mapCourse(row: CourseRow): Course {
     sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    courseOfferings: [], // ✅ همیشه پر می‌شود
+    sessionDuration: row.session_duration,
+    courseOfferings: [],
   };
 }
 

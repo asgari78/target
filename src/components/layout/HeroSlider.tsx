@@ -208,7 +208,7 @@ export default function HeroSlider({
         onClick={goPrev}
         disabled={safeSlides.length <= 1}
         className={cn(
-          'absolute top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full',
+          'absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full',
           'bg-[#2d2d2d]/50 backdrop-blur-md text-[#f8ecc2] border border-[#d8a834]/40 transition-all duration-200',
           'hover:bg-[#1a1a1a]/80 hover:border-[#f1cd57] hover:scale-105 active:scale-95',
           'focus:outline-none focus:ring-2 focus:ring-[#f1cd57]/50 disabled:pointer-events-none disabled:opacity-20',
@@ -225,7 +225,7 @@ export default function HeroSlider({
         onClick={goNext}
         disabled={safeSlides.length <= 1}
         className={cn(
-          'absolute top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full',
+          'absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full',
           'bg-[#2d2d2d]/50 backdrop-blur-md text-[#f8ecc2] border border-[#d8a834]/40 transition-all duration-200',
           'hover:bg-[#1a1a1a]/80 hover:border-[#f1cd57] hover:scale-105 active:scale-95',
           'focus:outline-none focus:ring-2 focus:ring-[#f1cd57]/50 disabled:pointer-events-none disabled:opacity-20',
@@ -239,7 +239,7 @@ export default function HeroSlider({
       {/* نقطه‌های راهنما (Dots) */}
       {safeSlides.length > 1 && (
         <div
-          className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 md:bottom-2.5"
+          className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 md:bottom-2.5"
           role="tablist"
           aria-label="نقاط ناوبری اسلایدر"
         >

@@ -58,7 +58,7 @@ function buildModeLabel(course: Course) {
 }
 
 function getSessionDurationText(course: Course) {
-  const possible = (course as any).sessionDuration as string | null | undefined; // چون در SQL هست ولی در Course interface نیست
+  const possible = course.sessionDuration;
   if (possible && possible.trim()) return possible.trim();
   return `${toPersianDigits(course.sessionHours)} ساعت`;
 }
