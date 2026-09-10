@@ -6,16 +6,19 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
+  CheckCircle2,
   GraduationCap,
   Heart,
   Medal,
+  MousePointerClick,
   PenSquare,
   School,
   Sparkles,
-  Star,
+  Users2,
 } from 'lucide-react';
 
 type Instructor = {
@@ -33,6 +36,7 @@ type Instructor = {
 
 type InstructorCardProps = {
   teacher: Instructor;
+  index: number;
   open: boolean;
   canHover: boolean;
   onToggle: () => void;
@@ -120,73 +124,50 @@ function useCanHover(): boolean {
   const [canHover, setCanHover] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
-    const mediaQuery = window.matchMedia(
-      '(hover: hover) and (pointer: fine)',
-    );
-
-    const updateHoverState = () => {
-      setCanHover(mediaQuery.matches);
-    };
+    const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const updateHoverState = () => setCanHover(mediaQuery.matches);
 
     updateHoverState();
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', updateHoverState);
-
-      return () => {
-        mediaQuery.removeEventListener('change', updateHoverState);
-      };
+      return () => mediaQuery.removeEventListener('change', updateHoverState);
     }
 
     mediaQuery.addListener(updateHoverState);
-
-    return () => {
-      mediaQuery.removeListener(updateHoverState);
-    };
+    return () => mediaQuery.removeListener(updateHoverState);
   }, []);
 
   return canHover;
 }
 
-function ResumeList({
-  title,
-  items,
-  icon,
-}: ResumeListProps) {
-  if (!items || items.length === 0) {
-    return null;
-  }
+function ResumeList({ title, items, icon }: ResumeListProps) {
+  if (!items || items.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
-      <h5 className="mb-2 flex items-center gap-2 text-sm font-extrabold text-slate-800">
-        <span className="text-indigo-600">{icon}</span>
+    <div className="rounded-xl border border-slate-200/80 bg-white/95 p-2.5 sm:p-3 shadow-xs">
+      <h5 className="mb-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900">
+        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-900 text-amber-300">
+          {icon}
+        </span>
         {title}
       </h5>
 
-      <ul className="space-y-1.5 text-sm leading-7 text-slate-700">
+      <ul className="space-y-1 text-[11px] sm:text-xs leading-5 sm:leading-6 text-slate-600">
         {items.map((item, index) => (
-          <li
-            key={`${title}-${index}`}
-            className="flex items-start gap-2"
-          >
-            <Star className="mt-1 h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <li key={`${title}-${index}`} className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
             <span>{item}</span>
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   );
 }
 
-function AutoScrollResume({
-  active,
-  children,
-}: AutoScrollResumeProps) {
+function AutoScrollResume({ active, children }: AutoScrollResumeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<number | null>(null);
@@ -223,11 +204,11 @@ function AutoScrollResume({
       };
     }
 
-    const START_DELAY = 5000;
+    const START_DELAY = 4000;
     const DOWN_SPEED = 0.5;
-    const UP_SPEED = 1.35;
-    const BOTTOM_PAUSE = 3000;
-    const RETRY_DELAY = 250;
+    const UP_SPEED = 1.25;
+    const BOTTOM_PAUSE = 2500;
+    const RETRY_DELAY = 200;
 
     type Direction = 'down' | 'up';
     let direction: Direction = 'down';
@@ -291,29 +272,28 @@ function AutoScrollResume({
   return (
     <div
       ref={containerRef}
-      className="h-full min-h-0 overflow-y-auto px-4 pb-4 pt-3"
+      className="h-full min-h-0 overflow-y-auto p-2.5 sm:p-3.5"
       style={{
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
         overscrollBehavior: 'contain',
       }}
     >
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-2 sm:space-y-2.5">{children}</div>
     </div>
   );
 }
 
 function InstructorCard({
   teacher,
+  index,
   open,
   canHover,
   onToggle,
   onHoverOpen,
   onHoverClose,
 }: InstructorCardProps) {
-  const handleKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-  ) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onToggle();
@@ -321,195 +301,255 @@ function InstructorCard({
   };
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
+    <motion.li
+      initial={{ opacity: 0, y: 16, scale: 0.985 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.4 }}
-      className="group min-h-0"
+      transition={{ duration: 0.42, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+      className="group list-none"
       onMouseEnter={() => {
-        if (canHover) {
-          onHoverOpen();
-        }
+        if (canHover) onHoverOpen();
       }}
       onMouseLeave={() => {
-        if (canHover) {
-          onHoverClose();
-        }
+        if (canHover) onHoverClose();
       }}
     >
       <button
         type="button"
         aria-expanded={open}
-        aria-label={`نمایش رزومه ${teacher.name}`}
+        aria-label={`نمایش رزومه و سوابق ${teacher.name}`}
         onClick={onToggle}
         onKeyDown={handleKeyDown}
-        className="block w-full cursor-pointer rounded-[1.25rem] md:rounded-[1.6rem] text-right focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 focus:ring-offset-white"
+        className="block w-full cursor-pointer text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
       >
-        <div
-          className="min-h-0"
-          style={{ perspective: '1800px' }}
-        >
+        <div style={{ perspective: '1800px' }}>
           <div
-            className="relative h-124 md:h-144 w-full min-h-0 rounded-[1.25rem] md:rounded-[1.6rem] transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform"
+            className="relative h-[440px] sm:h-[480px] w-full transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform"
             style={{
               transform: open ? 'rotateY(180deg)' : 'rotateY(0deg)',
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Front face */}
-            <div
-              className="absolute inset-0 overflow-hidden rounded-[1.25rem] md:rounded-[1.6rem] border border-slate-200 bg-white shadow-lg"
+            {/* FRONT FACE */}
+            <article
+              className="
+                absolute inset-0 flex flex-col overflow-hidden rounded-2xl
+                border border-slate-200/90 bg-white/90 text-right shadow-sm
+                backdrop-blur-[2px] transition-all duration-300
+                hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
+              "
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
               }}
             >
-              <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+              {/* Radial Glow & Inner Border matching CourseRow */}
+              <div
+                aria-hidden="true"
+                className="
+                  pointer-events-none absolute inset-0 z-[1]
+                  bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
+                      radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
+                "
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
+              />
+
+              {/* Teacher Image */}
+              <div className="relative z-[2] aspect-square w-full overflow-hidden bg-slate-100">
                 <img
                   src={teacher.image}
                   alt={teacher.name}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  fill
+                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  priority={index === 0}
                 />
-              </div>
 
-              <div className="p-3.5 md:p-4">
-                <div className="mb-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 md:px-3 py-1 text-[11px] md:text-xs font-bold text-emerald-700">
-                    <School className="h-3.5 w-3.5" />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
+                />
+
+                {/* Top Badge */}
+                <div className="absolute right-2 top-2 z-10">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/90 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                    <School className="h-3 w-3 text-emerald-600" />
                     معلم رسمی آموزش و پرورش
                   </span>
                 </div>
 
-                <h4
-                  className="text-[1.65rem] md:text-3xl leading-tight text-slate-900"
-                  style={{
-                    fontFamily: 'DigiLalezarPlus, sans-serif',
-                  }}
-                >
-                  {teacher.name}
-                </h4>
-
-                <p className="mt-1 text-[13px] md:text-sm font-semibold text-indigo-700">
-                  {teacher.role}
-                </p>
-
-                <p className="mt-2.5 md:mt-3 text-[13px] md:text-sm leading-6 md:leading-7 text-slate-600">
-                  برای دیدن رزومه و سوابق، کارت را لمس یا کلیک کنید.
-                </p>
+                {/* Mobile interaction hint */}
+                <div className="absolute bottom-2 left-2 z-10 sm:hidden">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-[2px]">
+                    <MousePointerClick className="h-2.5 w-2.5 text-amber-300" />
+                    لمس برای رزومه
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Back face */}
+              {/* Card Body */}
+              <div className="relative z-[2] flex flex-1 flex-col justify-between p-2.5 sm:p-3.5">
+                <div>
+                  <h4
+                    style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+                    className="
+                      text-lg sm:text-xl md:text-2xl leading-snug text-slate-900
+                      transition-colors duration-300 group-hover:text-slate-950
+                    "
+                  >
+                    {teacher.name}
+                  </h4>
+
+                  <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-600 line-clamp-1">
+                    {teacher.role}
+                  </p>
+                </div>
+
+                {/* Bottom CTA Bar */}
+                <div className="-mx-2.5 -mb-2.5 mt-2 sm:-mx-3.5 sm:-mb-3.5">
+                  <div
+                    className="
+                      group/cta inline-flex w-full items-center justify-center gap-1.5
+                      rounded-b-[14px] border-t border-slate-300/70
+                      bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
+                      px-2 py-2 text-[11px] font-extrabold text-white
+                      shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]
+                      transition-all duration-300
+                      group-hover:from-black group-hover:via-slate-900 group-hover:to-black
+                      sm:py-2.5 sm:text-xs
+                    "
+                  >
+                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-400/90 text-black shadow-sm">
+                      <Sparkles className="h-3 w-3" />
+                    </span>
+                    مشاهده سوابق و رزومه کامل
+                  </div>
+                </div>
+              </div>
+
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
+              />
+            </article>
+
+            {/* BACK FACE */}
             <div
-              className="absolute inset-0 flex h-full min-h-0 flex-col overflow-hidden rounded-[1.25rem] md:rounded-[1.6rem] border border-indigo-200 bg-slate-50 shadow-lg"
+              className="
+                absolute inset-0 flex h-full flex-col overflow-hidden rounded-2xl
+                border border-slate-300/90 bg-slate-50/95 shadow-md
+                backdrop-blur-[2px] text-right
+              "
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)',
               }}
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-indigo-100 bg-white/90 px-3.5 md:px-4 py-2.5 md:py-3 backdrop-blur-sm">
+              {/* Back Header */}
+              <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 py-2 sm:px-4 sm:py-2.5 backdrop-blur-sm">
                 <div className="min-w-0">
-                  <p className="text-[11px] md:text-xs font-bold text-indigo-600">
-                    رزومه و سوابق
-                  </p>
-
-                  <h5 className="mt-0.5 truncate text-base md:text-lg font-extrabold text-slate-900">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-amber-600">
+                    رزومه و دستاوردها
+                  </span>
+                  <h5 className="truncate text-sm sm:text-base font-extrabold text-slate-900">
                     {teacher.name}
                   </h5>
                 </div>
 
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-indigo-100 px-2.5 md:px-3 py-1.5 text-[10px] md:text-[11px] font-bold text-gray-600">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  اسکرول کنید
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-100/90 px-2 py-1 text-[10px] font-semibold text-slate-600">
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  اسکرول خودکار
                 </span>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-hidden">
+              {/* Scrollable Content */}
+              <div className="min-h-0 flex-1 overflow-hidden bg-slate-50/50">
                 <AutoScrollResume active={open}>
-                  <>
-                    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white">
-                          <Heart className="h-3.5 w-3.5 fill-white" />
-                          به گفته خود استاد
-                        </span>
+                  {/* Quote block */}
+                  <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 p-2.5 sm:p-3">
+                    <div className="mb-1.5 flex items-center justify-between gap-1">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                        <Heart className="h-2.5 w-2.5 fill-amber-300" />
+                        کلام استاد
+                      </span>
 
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">
-                          <School className="h-3.5 w-3.5" />
-                          معلم رسمی
-                        </span>
-                      </div>
-
-                      <p className="text-justify text-sm leading-7 text-slate-700">
-                        {teacher.quote}
-                      </p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+                        <School className="h-3 w-3" />
+                        رسمی آموزش و پرورش
+                      </span>
                     </div>
 
-                    <ResumeList
-                      title="سابقه تدریس"
-                      icon={<BookOpen className="h-4 w-4" />}
-                      items={teacher.experience}
-                    />
+                    <p className="text-justify text-[11px] sm:text-xs leading-5 sm:leading-6 text-slate-700">
+                      {teacher.quote}
+                    </p>
+                  </div>
 
-                    <ResumeList
-                      title="تحصیلات"
-                      icon={<GraduationCap className="h-4 w-4" />}
-                      items={teacher.education}
-                    />
+                  <ResumeList
+                    title="سابقه تدریس"
+                    icon={<BookOpen className="h-3 w-3" />}
+                    items={teacher.experience}
+                  />
 
-                    <ResumeList
-                      title="تألیفات"
-                      icon={<PenSquare className="h-4 w-4" />}
-                      items={teacher.publications}
-                    />
+                  <ResumeList
+                    title="تحصیلات دانشگاهی"
+                    icon={<GraduationCap className="h-3 w-3" />}
+                    items={teacher.education}
+                  />
 
-                    <ResumeList
-                      title="رتبه‌های برتر"
-                      icon={<Medal className="h-4 w-4" />}
-                      items={teacher.topRanks}
-                    />
+                  <ResumeList
+                    title="تألیفات و انتشارات"
+                    icon={<PenSquare className="h-3 w-3" />}
+                    items={teacher.publications}
+                  />
 
-                    <ResumeList
-                      title="سبک تدریس"
-                      icon={<Sparkles className="h-4 w-4" />}
-                      items={teacher.teachingStyle}
-                    />
-                  </>
+                  <ResumeList
+                    title="رتبه‌های برتر و قبولی‌ها"
+                    icon={<Medal className="h-3 w-3" />}
+                    items={teacher.topRanks}
+                  />
+
+                  <ResumeList
+                    title="سبک و متد تدریس"
+                    icon={<Sparkles className="h-3 w-3" />}
+                    items={teacher.teachingStyle}
+                  />
                 </AutoScrollResume>
+              </div>
+
+              {/* Back Footer action */}
+              <div className="border-t border-slate-200/90 bg-white/90 p-2 text-center">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:hidden">
+                  برای بازگشت به نمای اصلی کلیک کنید
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 hidden sm:block">
+                  برای بازگشت به نمای اصلی موس را خارج کنید 
+                </span>
               </div>
             </div>
           </div>
         </div>
       </button>
-    </motion.article>
+    </motion.li>
   );
 }
 
 export default function AboutSection() {
-  const [activeCardId, setActiveCardId] = useState<string | null>(
-    null,
-  );
-
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const canHover = useCanHover();
 
   useEffect(() => {
-    if (!activeCardId) {
-      return;
-    }
+    if (!activeCardId) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       const section = sectionRef.current;
-
-      if (!section) {
-        return;
-      }
+      if (!section) return;
 
       const target = event.target;
-
       if (target instanceof Node && !section.contains(target)) {
         setActiveCardId(null);
       }
@@ -525,20 +565,14 @@ export default function AboutSection() {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener(
-        'pointerdown',
-        handlePointerDown,
-      );
+      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [activeCardId]);
 
   const handleCardToggle = (teacherId: string) => {
     setActiveCardId((currentId) => {
-      if (canHover) {
-        return teacherId;
-      }
-
+      if (canHover) return teacherId;
       return currentId === teacherId ? null : teacherId;
     });
   };
@@ -549,75 +583,68 @@ export default function AboutSection() {
       id="about"
       dir="rtl"
       aria-labelledby="about-heading"
-      className="py-12 md:py-16"
+      className="relative z-10 mt-4 py-4 md:mt-6 md:py-8"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
+        {/* Header styled exactly like CourseList */}
+        <motion.header
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.55 }}
-          className="min-h-0 rounded-2xl md:rounded-3xl border border-white/60 bg-white/70 p-4 md:p-8 shadow-xl backdrop-blur-md"
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+          className="mb-4 md:mb-6"
         >
-          <div className="mb-6 md:mb-8 text-center">
-            <h3
-              id="about-heading"
+          <h2 id="about-heading" className="flex flex-col items-start gap-1 text-right">
+            <span
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-              className="text-[1.9rem] md:text-4xl leading-tight"
+              className="inline-flex items-center gap-2 text-xl leading-tight text-slate-900 sm:text-2xl md:text-4xl"
             >
-              <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
-                اساتید ما، تفاوت ما
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-amber-300 shadow-sm md:h-10 md:w-10">
+                <Users2 className="h-4 w-4 md:h-5 md:w-5" />
               </span>
-            </h3>
+              اساتید ما، تفاوت ما
+            </span>
 
-            <p className="mx-auto mt-2.5 md:mt-3 max-w-3xl text-sm md:text-base leading-7 md:leading-8 text-slate-600">
-              تیم آموزشی تارگت با ترکیب تجربه، روش‌های نوین و تدریس
-              مفهومی، مسیر یادگیری را برای دانش‌آموزان روشن و
-              لذت‌بخش می‌کند.
-            </p>
-          </div>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 sm:text-xs md:text-sm">
+              کادر تخصصی و رسمی تیزهوشان آکادمی تارگت
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
+            </span>
+          </h2>
 
-          <div className="grid min-h-0 grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {instructors.map((teacher, index) => {
-              const isOpen = activeCardId === teacher.id;
+          <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
+        </motion.header>
 
-              return (
-                <motion.div
-                  key={teacher.id}
-                  initial={{ opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{
-                    duration: 0.4,
-                    delay: index * 0.08,
-                  }}
-                  className="min-h-0"
-                >
-                  <InstructorCard
-                    teacher={teacher}
-                    open={isOpen}
-                    canHover={canHover}
-                    onToggle={() => handleCardToggle(teacher.id)}
-                    onHoverOpen={() => {
-                      if (canHover) {
-                        setActiveCardId(teacher.id);
-                      }
-                    }}
-                    onHoverClose={() => {
-                      if (canHover) {
-                        setActiveCardId((currentId) =>
-                          currentId === teacher.id
-                            ? null
-                            : currentId,
-                        );
-                      }
-                    }}
-                  />
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
+        {/* Teachers Grid */}
+        <ul
+          role="list"
+          aria-label="اساتید آکادمی تارگت"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {instructors.map((teacher, index) => {
+            const isOpen = activeCardId === teacher.id;
+
+            return (
+              <InstructorCard
+                key={teacher.id}
+                teacher={teacher}
+                index={index}
+                open={isOpen}
+                canHover={canHover}
+                onToggle={() => handleCardToggle(teacher.id)}
+                onHoverOpen={() => {
+                  if (canHover) setActiveCardId(teacher.id);
+                }}
+                onHoverClose={() => {
+                  if (canHover) {
+                    setActiveCardId((currentId) =>
+                      currentId === teacher.id ? null : currentId,
+                    );
+                  }
+                }}
+              />
+            );
+          })}
+        </ul>
       </div>
     </section>
   );

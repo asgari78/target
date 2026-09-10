@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, Users, BookOpen, RotateCcw, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BookOpen, GraduationCap, RotateCcw, Users } from 'lucide-react';
 
 type StatItem = {
   id: 'acceptance' | 'students' | 'courses';
@@ -13,45 +13,21 @@ type StatItem = {
 };
 
 const FALLBACK_STATS: StatItem[] = [
-  {
-    id: 'acceptance',
-    label: 'قبولی‌های تیزهوشان',
-    target: 25,
-    prefix: '+',
-    icon: GraduationCap,
-  },
-  {
-    id: 'students',
-    label: 'تارگتی‌ها',
-    target: 700,
-    prefix: '+',
-    icon: Users,
-  },
-  {
-    id: 'courses',
-    label: 'تعداد دوره‌ها',
-    target: 5,
-    prefix: '+',
-    icon: BookOpen,
-  },
+  { id: 'acceptance', label: 'قبولی‌های تیزهوشان', target: 90, prefix: '+', icon: GraduationCap },
+  { id: 'students', label: 'تارگتی‌ها', target: 700, prefix: '+', icon: Users },
+  { id: 'courses', label: 'تعداد دوره‌ها', target: 5, prefix: '+', icon: BookOpen },
 ];
 
-/**
- * اگر بعداً API واقعی داشتی، فقط این تابع را با fetch واقعی جایگزین کن.
- * فعلاً با تأخیر کوتاه شبیه‌سازی شده تا loading/error/retry ساختار داشته باشد.
- */
 async function getStatsData(signal?: AbortSignal): Promise<StatItem[]> {
   await new Promise<void>((resolve, reject) => {
-    const t = setTimeout(resolve, 700);
+    const t = setTimeout(resolve, 650);
     signal?.addEventListener('abort', () => {
       clearTimeout(t);
       reject(new DOMException('Aborted', 'AbortError'));
     });
   });
 
-  // اگر خواستی تست خطا کنی، موقتاً این خط را uncomment کن:
   // throw new Error('دریافت آمار با خطا مواجه شد.');
-
   return FALLBACK_STATS;
 }
 
@@ -59,7 +35,7 @@ function toPersianDigits(value: number | string): string {
   return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 }
 
-function useCountUp(target: number, duration = 1300, start = false) {
+function useCountUp(target: number, duration = 1200, start = false) {
   const [count, setCount] = useState(0);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
@@ -70,15 +46,10 @@ function useCountUp(target: number, duration = 1300, start = false) {
     const animate = (ts: number) => {
       if (startRef.current === null) startRef.current = ts;
       const progress = Math.min((ts - startRef.current) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      setCount(Math.round(target * eased));
 
-      // easeOutCubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const next = Math.round(target * eased);
-      setCount(next);
-
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(animate);
-      }
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
     };
 
     rafRef.current = requestAnimationFrame(animate);
@@ -93,14 +64,8 @@ function useCountUp(target: number, duration = 1300, start = false) {
   return count;
 }
 
-type CounterProps = {
-  target: number;
-  prefix?: string;
-  start: boolean;
-};
-
-function Counter({ target, prefix = '', start }: CounterProps) {
-  const value = useCountUp(target, 1300, start);
+function Counter({ target, prefix = '', start }: { target: number; prefix?: string; start: boolean }) {
+  const value = useCountUp(target, 1200, start);
   return <>{`${prefix}${toPersianDigits(value)}`}</>;
 }
 
@@ -131,19 +96,17 @@ export default function StatsSection() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStats();
   }, [loadStats]);
 
-  // شروع کانتر بعد از پایان loading و نبود error
   useEffect(() => {
     if (!loading && !error && stats.length > 0) {
-      const t = setTimeout(() => setStartCount(true), 150);
+      const t = setTimeout(() => setStartCount(true), 130);
       return () => clearTimeout(t);
     }
-    // Use timeout to avoid synchronous setState in effect
-    const timeoutId = setTimeout(() => setStartCount(false), 0);
-    return () => clearTimeout(timeoutId);
+
+    const t = setTimeout(() => setStartCount(false), 0);
+    return () => clearTimeout(t);
   }, [loading, error, stats.length]);
 
   const skeletons = useMemo(() => Array.from({ length: 3 }), []);
@@ -153,101 +116,119 @@ export default function StatsSection() {
       id="stats"
       dir="rtl"
       aria-labelledby="stats-heading"
-      className="relative z-10 py-12 md:py-16"
+      className="relative z-10 mt-4 py-4 md:mt-6 md:py-8"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
+        <motion.header
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.45 }}
-          className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-lg backdrop-blur-sm md:p-8"
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+          className="mb-4 md:mb-6"
         >
-          {/* شعار */}
-          <h3
-            id="stats-heading"
-            style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-            className="text-center text-3xl leading-tight text-slate-800 md:text-5xl"
+          <h2 id="stats-heading" className="flex flex-col items-start gap-1 text-right">
+            <span
+              style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+              className="inline-flex items-center gap-2 text-xl leading-tight text-slate-900 sm:text-2xl md:text-4xl"
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-amber-300 shadow-sm md:h-10 md:w-10">
+                <GraduationCap className="h-4 w-4 md:h-5 md:w-5" />
+              </span>
+              آمار آکادمی تارگت
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 sm:text-xs md:text-sm">
+              رشد واقعی با آموزش اصولی و مسیر هدفمند
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
+            </span>
+          </h2>
+
+          <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
+        </motion.header>
+
+        {error && (
+          <div className="rounded-2xl border border-red-200/90 bg-red-50/90 p-4 text-center shadow-sm">
+            <div className="mb-1.5 flex items-center justify-center gap-2 text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              <p className="text-sm font-bold md:text-base">خطا در دریافت آمار</p>
+            </div>
+            <p className="text-xs text-red-600 md:text-sm">{error}</p>
+
+            <button
+              type="button"
+              onClick={loadStats}
+              className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700 md:text-sm"
+            >
+              <RotateCcw className="h-4 w-4" />
+              تلاش مجدد
+            </button>
+          </div>
+        )}
+
+        {loading && !error && (
+          <ul
+            role="list"
+            aria-label="آمار آکادمی (در حال بارگذاری)"
+            className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
           >
-            <span className="bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 bg-clip-text text-transparent">
-              تارگت
-            </span>{' '}
-            <span className="text-slate-800">تا قله با تو</span>
-          </h3>
-
-          <p className="mt-3 text-center text-sm font-semibold text-slate-600 md:text-base">
-            رشد واقعی با تلاش مستمر، آموزش اصولی و مسیر هدفمند
-          </p>
-
-          <span className="mx-auto mt-5 block h-1.5 w-44 rounded-full bg-linear-to-l from-indigo-600 via-fuchsia-500 to-amber-400 md:w-72" />
-
-          {/* Error State */}
-          {error && (
-            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
-              <div className="mb-2 flex items-center justify-center gap-2 text-red-700">
-                <AlertTriangle className="h-5 w-5" />
-                <p className="font-bold">خطا در دریافت آمار</p>
-              </div>
-              <p className="text-sm text-red-600">{error}</p>
-
-              <button
-                type="button"
-                onClick={loadStats}
-                className="mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700"
+            {skeletons.map((_, i) => (
+              <li
+                key={i}
+                className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 shadow-sm"
               >
-                <RotateCcw className="h-4 w-4" />
-                تلاش مجدد
-              </button>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {loading && !error && (
-            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {skeletons.map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm"
-                >
-                  <div className="mx-auto mb-3 h-12 w-12 animate-pulse rounded-xl bg-slate-100" />
-                  <div className="mx-auto h-9 w-20 animate-pulse rounded-xl bg-slate-100" />
-                  <div className="mx-auto mt-2 h-5 w-28 animate-pulse rounded-xl bg-slate-100" />
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-10 w-10 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-4 w-28 animate-pulse rounded-lg bg-slate-100" />
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="h-8 w-24 animate-pulse rounded-xl bg-slate-100" />
+              </li>
+            ))}
+          </ul>
+        )}
 
-          {/* Success State */}
-          {!loading && !error && (
-            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {stats.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <motion.article
-                    key={item.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: index * 0.08 }}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm"
+        {!loading && !error && (
+          <ul role="list" aria-label="آمار آکادمی" className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+            {stats.map((item, index) => {
+              const Icon = item.icon;
+
+              return (
+                <motion.li
+                  key={item.id}
+                  initial={{ opacity: 0, y: 14, scale: 0.985 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.38, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  className="group"
+                >
+                  <article
+                    className="
+                      relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl
+                      border border-slate-200/90 bg-white/90 p-4 text-right shadow-sm
+                      transition-all duration-300
+                      hover:-translate-y-0.5 hover:border-slate-300/95 hover:shadow-md
+                    "
                   >
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
-                      <Icon className="h-6 w-6 text-indigo-700" />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_45%_at_100%_0%,rgba(250,204,21,0.10),transparent_60%)]"
+                    />
+
+                    <div className="relative w-full flex items-center justify-center z-2 min-w-0">
+                      <p className="text-xs font-semibold me-auto text-slate-600 sm:text-sm">{item.label}</p>
+                      <p className="mt-1 text-2xl me-5 font-extrabold text-slate-900 sm:text-3xl" aria-live="polite">
+                        <Counter target={item.target} prefix={item.prefix} start={startCount} />
+                      </p>
                     </div>
 
-                    <p className="text-3xl font-extrabold text-indigo-700 md:text-4xl" aria-live="polite">
-                      <Counter target={item.target} prefix={item.prefix} start={startCount} />
-                    </p>
-
-                    <p className="mt-1 text-sm font-bold text-slate-700 md:text-base">
-                      {item.label}
-                    </p>
-                  </motion.article>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
+                    <span className="relative z-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-amber-300 shadow-sm">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                  </article>
+                </motion.li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </section>
   );

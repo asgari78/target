@@ -200,7 +200,7 @@ export default function CourseRow({ course, index, onRegisterClick }: CourseRowP
             className="
               line-clamp-2 py-1 text-[13px] leading-5 text-slate-900
               transition-colors duration-300 group-hover:text-slate-950
-              sm:min-h-[2.7rem] sm:text-[15px] sm:leading-6 md:text-base
+              sm:text-[15px] sm:leading-6 md:text-base
             "
             title={course.title}
           >
@@ -209,7 +209,7 @@ export default function CourseRow({ course, index, onRegisterClick }: CourseRowP
 
 
           {/* Mobile compact line */}
-          <div className="py-1 flex items-center justify-between text-[10px] text-slate-600 sm:hidden">
+          <div className="py-1 flex items-center justify-between text-[10px] sm:text-[13px] text-slate-600">
             <span className="inline-flex items-center gap-1">
               <Clock3 className="h-3 w-3 text-slate-500" />
               {sessionDurationText}
@@ -228,7 +228,7 @@ export default function CourseRow({ course, index, onRegisterClick }: CourseRowP
               onClick={() => onRegisterClick(course, primaryMode)}
               className="
                 group/cta inline-flex w-full items-center justify-center gap-1.5
-                rounded-t-xl rounded-b-[14px] border-t border-slate-300/70
+                rounded-b-[14px] border-t border-slate-300/70
                 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
                 px-2 py-2.5 text-[11px] font-extrabold text-white
                 shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]

@@ -99,7 +99,7 @@ export default function CourseList({ courses, isLoading, onRegisterClick }: Cour
             </span>
           </h2>
 
-          <span className="mt-2 block h-1 w-28 rounded-full bg-gradient-to-l from-slate-900 via-amber-500 to-violet-500 sm:w-36 md:w-52" />
+          <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
         </motion.header>
 
         <ul
