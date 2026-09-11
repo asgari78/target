@@ -538,7 +538,7 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                       className="rounded-2xl p-4 border border-slate-200 bg-white shadow-sm"
                     >
                       <label className="mb-3 block text-sm font-semibold text-slate-700">نحوه پرداخت</label>
-                      <div className="relative flex w-full max-w-xs rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
+                      <div className="relative flex w-full rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
                         {[
                           { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
                           { id: 'installment' as PaymentMode, label: currentOffering ? `اقساط (${currentOffering.installmentsCount} مرحله)` : 'اقساط', icon: CreditCard },
@@ -603,10 +603,10 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                                   قیمت اصلی: <span className="fa-nums">{formatPrice(pricing.originalAmount)}</span> تومان
                                 </p>
                               )}
-                              <p className="text-4xl font-extrabold text-white fa-nums">
+                              <p className="text-4xl font-extrabold text-slate-800 fa-nums">
                                 {formatPrice(pricing.baseAmount)}
                               </p>
-                              <p className="mt-1 text-white/90">تومان (پرداخت یک‌جا)</p>
+                              <p className="mt-1 text-slate-800/90">تومان (پرداخت یک‌جا)</p>
                               {pricing.discountPercent > 0 && (
                                 <motion.span
                                   initial={{ scale: 0.8, opacity: 0 }}
@@ -753,11 +753,11 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                       className="rounded-2xl p-4 border border-amber-200 bg-amber-50/50"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="h-5 w-5 text-amber-600" />
+                        <span className="h-3 w-3 bg-amber-600 rounded-2xl" />
                         <h4 className="font-semibold text-amber-900">درخواست مشاوره رایگان</h4>
                       </div>
                       <p className="text-sm text-amber-800">
-                        اگر در انتخاب دوره یا نحوه برگزاری duda دارید، درخواست مشاوره رایگان ثبت کنید.
+                        اگر در انتخاب دوره یا نحوه برگزاری مشکلی دارید، درخواست مشاوره رایگان ثبت کنید.
                         کارشناسان ما در سریع‌ترین وقت با شما تماس گرفته و راهنمایی خواهند کرد.
                       </p>
                     </motion.div>
