@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/src/lib/utils';
 
 export interface Slide {
@@ -61,14 +62,17 @@ function SlideImage({
       )}
       aria-hidden={!active}
     >
-      <img
+      <Image
         src={slide.image}
         alt={slide.alt}
+        fill
+        className="h-full w-full select-none object-cover object-center"
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
-        draggable={false}
-        className="h-full w-full select-none object-cover object-center transform:translateZ(0)"
+        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+        placeholder="blur"
+        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
       />
       <div
         className={cn(

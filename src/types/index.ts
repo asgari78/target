@@ -290,6 +290,14 @@ export interface PaymentResult {
   error?: string;
 }
 
+export interface FakePaymentResponse {
+  orderId: string;
+  authority: string;
+  payUrl: string;
+  amount: number;
+  isTest: true;
+}
+
 export interface ModalPaymentState {
   mode: 'idle' | 'initiating' | 'redirecting' | 'result';
   result?: PaymentResult;

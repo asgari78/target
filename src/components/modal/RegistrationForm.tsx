@@ -54,10 +54,13 @@ export default function RegistrationForm({
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting, isValid, isDirty },
+    setValue,
+    trigger,
   } = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
-    mode: 'onChange',
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       studentName: '',
       phoneNumber: '',
@@ -70,12 +73,22 @@ export default function RegistrationForm({
   const watchedStudentName = watch('studentName');
 
   useEffect(() => {
-    onPaymentModeChange(watchedPaymentMode ?? paymentMode);
+    if (watchedPaymentMode && watchedPaymentMode !== paymentMode) {
+      onPaymentModeChange(watchedPaymentMode);
+    }
   }, [watchedPaymentMode, onPaymentModeChange, paymentMode]);
+
+  useEffect(() => {
+    if (paymentMode !== watchedPaymentMode) {
+      setValue('paymentMode', paymentMode, { shouldValidate: false, shouldDirty: false });
+    }
+  }, [paymentMode, watchedPaymentMode, setValue]);
 
   const modeLabel = getModeLabel(registrationType);
   const isInstallment = paymentMode === 'installment';
   const payableAmount = isInstallment ? (firstInstallmentAmount ?? pricing?.installments[0]?.amount ?? 0) : (pricing?.baseAmount ?? 0);
+
+  const isFormValid = isValid && isDirty && !!watchedStudentName?.trim() && !!watchedPhoneNumber?.trim();
 
   const onSubmitPayment = async (values: RegistrationFormValues) => {
     setSubmitType('payment');
@@ -286,62 +299,6 @@ export default function RegistrationForm({
         )}
       </motion.div>
 
-      {/* Payment Mode Toggle (only for payment variant) */}
-      {variant === 'payment' && offering && (
-        <motion.fieldset
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="space-y-3"
-        >
-          <legend className="mb-2 block text-sm font-medium text-slate-700">
-            نحوه پرداخت <span className="text-red-500" aria-hidden="true">*</span>
-          </legend>
-          <div className="relative flex w-full max-w-sm rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
-            {[
-              { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
-              { id: 'installment' as PaymentMode, label: `اقساط (${offering.installmentsCount} مرحله)`, icon: CreditCard },
-            ].map((option) => {
-              const isSelected = watchedPaymentMode === option.id;
-              const isDisabled = option.id === 'installment' && offering.installmentsCount <= 0;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => !isDisabled && onPaymentModeChange(option.id)}
-                  disabled={isDisabled}
-                  className={cn(
-                    'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-bold transition-colors duration-200',
-                    isSelected ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
-                    isDisabled && 'opacity-50 cursor-not-allowed',
-                  )}
-                >
-                  {isSelected && (
-                    <motion.div
-                      layoutId="payment-toggle-bg"
-                      className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5"
-                      initial={false}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-20 flex items-center gap-1.5">
-                    <option.icon className="h-4 w-4" aria-hidden="true" />
-                    {option.label}
-                  </span>
-                  <input
-                    type="radio"
-                    checked={isSelected}
-                    disabled={isDisabled}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    {...register('paymentMode', { value: option.id })}
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </motion.fieldset>
-      )}
-
       {/* Installment Preview (when installment mode selected) */}
       {variant === 'payment' && isInstallment && installmentItems.length > 0 && (
         <motion.div
@@ -401,15 +358,16 @@ export default function RegistrationForm({
         {/* Primary Action */}
         <button
           type="submit"
-          disabled={isSubmitting || isLoading || !isValid || !watchedPhoneNumber || !watchedStudentName}
+          disabled={isSubmitting || isLoading || !isFormValid}
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5',
             'font-semibold text-white transition hover:scale-[1.02] active:scale-[0.98]',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            isValid && watchedPhoneNumber && watchedStudentName && !isSubmitting && !isLoading
+            isFormValid && !isSubmitting && !isLoading
               ? 'bg-linear-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200/50'
               : 'bg-slate-300 cursor-not-allowed',
           )}
+          style={{ minHeight: '52px' }}
         >
           {isSubmitting || isLoading ? (
             <>
@@ -436,20 +394,24 @@ export default function RegistrationForm({
           <button
             type="button"
             onClick={() => {
-              // Manually validate and submit consultation
-              onSubmitConsultation({
-                studentName: watchedStudentName ?? '',
-                phoneNumber: watchedPhoneNumber ?? '',
-              });
+              const name = watchedStudentName?.trim() ?? '';
+              const phone = watchedPhoneNumber?.trim() ?? '';
+              if (name && phone) {
+                onSubmitConsultation({
+                  studentName: name,
+                  phoneNumber: phone,
+                });
+              }
             }}
-            disabled={isSubmitting || isLoading || !watchedPhoneNumber || !watchedStudentName}
+            disabled={isSubmitting || isLoading || !watchedStudentName?.trim() || !watchedPhoneNumber?.trim()}
             className={cn(
               'flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5',
               'font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
+            style={{ minHeight: '52px' }}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">
                 <span className="text-[10px] font-bold">!</span>
               </span>

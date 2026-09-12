@@ -52,7 +52,7 @@ const testimonials: Testimonial[] = [
     id: 4,
     name: 'نگار سادات حسینی',
     gradeBadge: 'مشاوره و برنامه‌ریزی',
-    text: 'قبل ثبت‌نام نمی‌دونستم کدوم کلاس به دردم می‌خوره و فقط نمی‌خواستم وقتم هدر بره. مشاوره خیلی شفاف بود و گفتن دقیقاً از کجا باید شروع کنم. پشتیبانی هم خوب بود، هر وقت تکلیف‌هامو دیر می‌فرستادم پیگیری می‌کردن.',
+    text: 'قبل ثبت‌نام نمی‌دونستم کدوم کلاس به دردم می‌خوره و فقط نمی‌خواستم وقتم هدر بره. مشاوره خیلی شفاف بود و گفتن دقیقاً از کجا باید شروع کنم. پشتیبانی هم خوب بود، هر وقت تکلیف‌هامو دیر می‌فرستادم پیگیری می‌کردند.',
     rating: 4,
     dateFa: '۲۱ بهمن ۱۴۰۴',
   },
@@ -105,6 +105,116 @@ function RatingStars({ rating }: { rating: number }) {
         );
       })}
     </div>
+  );
+}
+
+function TestimonialCard({ item, index }: { item: Testimonial; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.985 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{
+        duration: 0.42,
+        delay: Math.min(index * 0.04, 0.2), // Cap max delay
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="
+        group h-full shrink-0 snap-start
+        w-[88%] xs:w-[80%] sm:w-[360px] lg:w-[380px]
+      "
+    >
+      <article
+        className="
+          relative flex h-full flex-col justify-between overflow-hidden rounded-2xl
+          border border-slate-200/90 bg-white/90 p-3.5 sm:p-4.5 text-right shadow-sm
+          backdrop-blur-[2px]
+          transition-all duration-300
+          hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
+        "
+      >
+        {/* Radial gradient effect matching CourseRow */}
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none absolute inset-0 z-[1]
+            bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
+                radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
+          "
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
+        />
+
+        {/* Decorative subtle quotation icon */}
+        <Quote
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-3 z-[1] h-10 w-10 text-slate-900/[0.04]"
+        />
+
+        <div className="relative z-[2]">
+          {/* Top row: Avatar + Name + Rating */}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 shadow-2xs">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-slate-500" />
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <h3
+                  style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+                  className="truncate text-base sm:text-lg leading-tight text-slate-900"
+                >
+                  {item.name}
+                </h3>
+                {item.gradeBadge ? (
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+                    <Sparkles className="h-2.5 w-2.5 text-amber-500" />
+                    {item.gradeBadge}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-slate-400">
+                    {item.dateFa}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <RatingStars rating={item.rating} />
+          </div>
+
+          {/* Body Text */}
+          <p className="text-xs sm:text-[13px] leading-5.5 sm:leading-6 text-slate-700">
+            «{item.text}»
+          </p>
+        </div>
+
+        {/* Card Footer: Date & Verified Label */}
+        <div className="relative z-[2] mt-4 flex items-center justify-between border-t border-slate-100 pt-2.5 text-[10px] sm:text-[11px] font-semibold text-slate-500">
+          <span className="inline-flex items-center gap-1 text-emerald-600">
+            <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            دانش‌آموز تایید‌شده تارگت
+          </span>
+          <span className="text-slate-400">{item.dateFa}</span>
+        </div>
+
+        {/* Hover ring */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
+        />
+      </article>
+    </motion.div>
   );
 }
 
@@ -192,112 +302,7 @@ export default function TestimonialsSection() {
           }}
         >
           {testimonials.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 16, scale: 0.985 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.42,
-                delay: index * 0.04,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="
-                group h-full shrink-0 snap-start
-                w-[88%] xs:w-[80%] sm:w-[360px] lg:w-[380px]
-              "
-            >
-              <article
-                className="
-                  relative flex h-full flex-col justify-between overflow-hidden rounded-2xl
-                  border border-slate-200/90 bg-white/90 p-3.5 sm:p-4.5 text-right shadow-sm
-                  backdrop-blur-[2px]
-                  transition-all duration-300
-                  hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
-                "
-              >
-                {/* Radial gradient effect matching CourseRow */}
-                <div
-                  aria-hidden="true"
-                  className="
-                    pointer-events-none absolute inset-0 z-[1]
-                    bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
-                        radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
-                  "
-                />
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
-                />
-
-                {/* Decorative subtle quotation icon */}
-                <Quote
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-3 top-3 z-[1] h-10 w-10 text-slate-900/[0.04]"
-                />
-
-                <div className="relative z-[2]">
-                  {/* Top row: Avatar + Name + Rating */}
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 shadow-2xs">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <User className="h-5 w-5 text-slate-500" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <h3
-                          style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-                          className="truncate text-base sm:text-lg leading-tight text-slate-900"
-                        >
-                          {item.name}
-                        </h3>
-                        {item.gradeBadge ? (
-                          <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500">
-                            <Sparkles className="h-2.5 w-2.5 text-amber-500" />
-                            {item.gradeBadge}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-slate-400">
-                            {item.dateFa}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <RatingStars rating={item.rating} />
-                  </div>
-
-                  {/* Body Text */}
-                  <p className="text-xs sm:text-[13px] leading-5.5 sm:leading-6 text-slate-700">
-                    «{item.text}»
-                  </p>
-                </div>
-
-                {/* Card Footer: Date & Verified Label */}
-                <div className="relative z-[2] mt-4 flex items-center justify-between border-t border-slate-100 pt-2.5 text-[10px] sm:text-[11px] font-semibold text-slate-500">
-                  <span className="inline-flex items-center gap-1 text-emerald-600">
-                    <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    دانش‌آموز تایید‌شده تارگت
-                  </span>
-                  <span className="text-slate-400">{item.dateFa}</span>
-                </div>
-
-                {/* Hover ring */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
-                />
-              </article>
-            </motion.div>
+            <TestimonialCard key={item.id} item={item} index={index} />
           ))}
         </div>
 

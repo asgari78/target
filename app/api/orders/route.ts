@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/src/lib/server/supabaseAdmin';
-import { requestPayment, getPaymentUrl } from '@/src/lib/server/zarinpal';
+import { requestPayment, getPaymentUrl, getConfig } from '@/src/lib/server/zarinpal';
 import { calculateOrderPricingFromOffering, formatAmountForZarinpal } from '@/src/lib/pricing';
 
 export const runtime = 'nodejs';
@@ -144,12 +144,14 @@ export async function POST(request: NextRequest) {
     });
 
     const payUrl = getPaymentUrl(paymentResponse.data!.authority);
+    const { isConfigured } = getConfig();
 
     return NextResponse.json({
       orderId: order.id,
       authority: paymentResponse.data?.authority,
       payUrl,
       amount: amountToCharge,
+      isTest: !isConfigured,
     });
   } catch (error) {
     console.error('Create order error:', error);

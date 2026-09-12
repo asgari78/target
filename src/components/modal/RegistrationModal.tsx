@@ -34,12 +34,43 @@ interface RegistrationModalProps {
 
 type FormVariant = 'payment' | 'consultation' | null;
 type ViewState = 'detail' | 'form' | 'result';
+type ModalStep = 'detail' | 'form-payment' | 'form-consultation' | 'result';
 
 function ModalContent({ course, onClose }: RegistrationModalProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const isMountedRef = useRef(false);
+
+  // Hash-based history management for modal
+  const getModalHash = useCallback((step: ModalStep, courseId: string) => {
+    return `#modal=${courseId}&step=${step}`;
+  }, []);
+
+  const parseModalHash = useCallback(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#modal=')) return null;
+    const params = new URLSearchParams(hash.slice(1).replace('modal=', ''));
+    return {
+      courseId: params.get('modal')?.split('&')[0] || params.get('courseId') || '',
+      step: (params.get('step') as ModalStep) || 'detail',
+    };
+  }, []);
+
+  const updateHash = useCallback((step: ModalStep) => {
+    if (!course) return;
+    const hash = getModalHash(step, course.id);
+    if (window.location.hash !== hash) {
+      history.pushState(null, '', hash);
+    }
+  }, [course, getModalHash]);
+
+  const clearHash = useCallback(() => {
+    if (window.location.hash.startsWith('#modal=')) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
 
   const availableModes = useMemo(() => {
     if (!course?.courseOfferings) return ['online', 'in_person'] as RegistrationType[];
@@ -156,11 +187,20 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
   }, [course]);
 
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open, save/restore scroll position
   useEffect(() => {
+    const scrollY = window.scrollY;
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
     return () => {
+      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10));
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -174,14 +214,16 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
   // Define handlers before useEffect that uses them
   const handleClose = useCallback(() => {
     if (paymentState.mode === 'redirecting') return;
+    clearHash();
     restoreFocus();
     onClose();
-  }, [onClose, paymentState.mode, restoreFocus]);
+  }, [onClose, paymentState.mode, restoreFocus, clearHash]);
 
   const handleBackToDetail = useCallback(() => {
     setViewState('detail');
     setFormVariant(null);
     setFormError(null);
+    // Hash will be updated by the effect that watches viewState/formVariant
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -191,9 +233,93 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
   }, []);
 
   const handlePaymentSuccess = useCallback(() => {
+    clearHash();
     restoreFocus();
     onClose();
-  }, [onClose, restoreFocus]);
+  }, [onClose, restoreFocus, clearHash]);
+
+  const openPaymentForm = useCallback(() => {
+    setFormVariant('payment');
+    setViewState('form');
+  }, []);
+
+  const openConsultationForm = useCallback(() => {
+    setFormVariant('consultation');
+    setViewState('form');
+  }, []);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const parsed = parseModalHash();
+      if (!parsed || parsed.courseId !== course?.id) {
+        // Modal hash removed or different course - close modal
+        if (isMountedRef.current) {
+          handleClose();
+        }
+        return;
+      }
+      // Internal step navigation
+      switch (parsed.step) {
+        case 'detail':
+          handleBackToDetail();
+          break;
+        case 'form-payment':
+          if (viewState !== 'form' || formVariant !== 'payment') {
+            openPaymentForm();
+          }
+          break;
+        case 'form-consultation':
+          if (viewState !== 'form' || formVariant !== 'consultation') {
+            openConsultationForm();
+          }
+          break;
+        case 'result':
+          // Result state is handled by paymentState
+          break;
+      }
+    };
+
+    const handlePopState = () => {
+      handleHashChange();
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [course?.id, viewState, formVariant, handleBackToDetail, openPaymentForm, openConsultationForm, handleClose, parseModalHash]);
+
+  // Update hash when internal state changes
+  useEffect(() => {
+    if (!course || !isMountedRef.current) return;
+    if (viewState === 'detail') {
+      updateHash('detail');
+    } else if (viewState === 'form' && formVariant === 'payment') {
+      updateHash('form-payment');
+    } else if (viewState === 'form' && formVariant === 'consultation') {
+      updateHash('form-consultation');
+    } else if (paymentState.mode === 'result') {
+      updateHash('result');
+    }
+  }, [viewState, formVariant, paymentState.mode, course, updateHash]);
+
+  // Initialize hash on mount, clear on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    if (course) {
+      const parsed = parseModalHash();
+      if (!parsed || parsed.courseId !== course.id) {
+        updateHash('detail');
+      }
+    }
+    return () => {
+      isMountedRef.current = false;
+      clearHash();
+    };
+  }, [course, parseModalHash, updateHash, clearHash]);
 
   // Focus management for accessibility - must be after handler definitions
   useEffect(() => {
@@ -266,6 +392,18 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
           throw new Error(result.error || 'خطا در ایجاد سفارش');
         }
 
+        // Handle test mode - simulate successful payment directly in modal
+        if (result.isTest) {
+          setPaymentState({
+            mode: 'result',
+            result: { status: 'success', orderId: result.orderId },
+          });
+          setViewState('result');
+          setFormVariant(null);
+          setIsFormLoading(false);
+          return;
+        }
+
         setPaymentState({ mode: 'redirecting' });
         window.location.href = result.payUrl;
       } catch (error) {
@@ -315,16 +453,6 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
     },
     [],
   );
-
-  const openPaymentForm = useCallback(() => {
-    setFormVariant('payment');
-    setViewState('form');
-  }, []);
-
-  const openConsultationForm = useCallback(() => {
-    setFormVariant('consultation');
-    setViewState('form');
-  }, []);
 
   if (!course) return null;
 
@@ -501,14 +629,14 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative aspect-4/3 w-full rounded-2xl overflow-hidden bg-slate-100"
+                        className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100"
                       >
                         <Image
                           src={course.coverImageUrl}
                           alt={course.title}
                           fill
-                          className="object-cover"
-                          sizes="100vw"
+                          className="object-contain"
+                          sizes="(max-width: 768px) 100vw, 50vw"
                           priority
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
@@ -538,7 +666,7 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                       className="rounded-2xl p-4 border border-slate-200 bg-white shadow-sm"
                     >
                       <label className="mb-3 block text-sm font-semibold text-slate-700">نحوه پرداخت</label>
-                      <div className="relative flex w-full rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl">
+                      <div className="relative flex w-full rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl" role="radiogroup" aria-label="نحوه پرداخت">
                         {[
                           { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
                           { id: 'installment' as PaymentMode, label: currentOffering ? `اقساط (${currentOffering.installmentsCount} مرحله)` : 'اقساط', icon: CreditCard },
@@ -549,13 +677,20 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                             <button
                               key={option.id}
                               type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              aria-disabled={isDisabled}
                               onClick={() => !isDisabled && setPaymentMode(option.id)}
                               disabled={isDisabled}
                               className={cn(
-                                'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-bold transition-colors duration-200',
-                                isSelected ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
+                                'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3.5 text-sm font-bold transition-all duration-200',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2',
+                                isSelected
+                                  ? 'text-slate-900 shadow-sm'
+                                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50',
                                 isDisabled && 'opacity-50 cursor-not-allowed',
                               )}
+                              style={{ minHeight: '48px', minWidth: '120px' }}
                             >
                               {isSelected && (
                                 <motion.div
@@ -569,21 +704,21 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                                 <option.icon className="h-4 w-4" aria-hidden="true" />
                                 {option.label}
                               </span>
-<input
-  type="radio"
-  name="payment-mode"
-  checked={isSelected}
-  disabled={isDisabled}
-  readOnly
-  className="absolute inset-0 opacity-0 cursor-pointer"
-/>
-
+                              <input
+                                type="radio"
+                                name="payment-mode"
+                                checked={isSelected}
+                                disabled={isDisabled}
+                                readOnly
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                aria-hidden="true"
+                              />
                             </button>
                           );
                         })}
                       </div>
                       {paymentMode === 'installment' && !currentOffering?.installmentsCount && (
-                        <p className="mt-2 text-sm text-amber-700 text-center">برنامه اقساطی برای این گزینه موجود نیست</p>
+                        <p className="mt-2 text-sm text-amber-700 text-center" role="alert">برنامه اقساطی برای این گزینه موجود نیست</p>
                       )}
                     </motion.div>
 
@@ -626,7 +761,7 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                               <div className="rounded-2xl p-4 border border-slate-200 bg-slate-50">
                                 <div className="flex items-center justify-between gap-4 flex-wrap">
                                   <div className="flex flex-col">
-                                    <p className="text-sm font-medium text-slate-600">مجموع اقساط (بدون سود)</p>
+                                    <p className="text-sm font-medium text-slate-600">مجموع اقساط</p>
                                     <p className="text-2xl font-extrabold fa-nums text-slate-900">
                                       {formatPrice(pricing.totalAmount)} تومان
                                     </p>
@@ -693,10 +828,6 @@ function ModalContent({ course, onClose }: RegistrationModalProps) {
                                   ))}
                                 </div>
                               </div>
-
-                              <p className="text-center text-xs text-slate-500">
-                                * اقساط بدون سود و کارمزد محاسبه شده‌اند. مبالغ تقریبی هستند و در فاکتور نهایی قابل تغییر می‌باشند.
-                              </p>
                             </div>
                           )}
 

@@ -137,7 +137,7 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex flex-col">
                   <p className="text-sm font-medium" style={{ color: config.textColor }}>
-                    مجموع اقساط (بدون سود)
+                    مجموع اقساط
                   </p>
                   <p className="text-2xl font-extrabold fa-nums" style={{ color: config.textColor }}>
                     {formatPrice(plan.totalAmount)} تومان
@@ -200,10 +200,6 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
                 ))}
               </AnimatePresence>
             </div>
-
-            <p className="text-center text-xs text-slate-500">
-              * اقساط بدون سود و کارمزد محاسبه شده‌اند. مبالغ تقریبی هستند و در فاکتور نهایی قابل تغییر می‌باشند.
-            </p>
           </motion.div>
         )}
       </AnimatePresence>

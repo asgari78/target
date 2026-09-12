@@ -53,9 +53,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify payment with Zarinpal using the exact amount that was charged
-    // For installment orders, this is the first installment amount
-    // For cash orders, this is the full amount
-    const amountToVerify = formatAmountForZarinpal(order.total_amount);
+    // For installment orders, this is the first installment amount (stored in base_amount for first installment)
+    // For cash orders, this is the full amount (stored in base_amount)
+    // The amountToCharge is always the base_amount for the first payment
+    const amountToVerify = formatAmountForZarinpal(order.base_amount);
 
     const verifyResponse = await verifyPayment({
       amount: amountToVerify,

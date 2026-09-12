@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -9,14 +9,8 @@ interface MousePosition {
   y: number;
 }
 
-interface DeviceOrientation {
-  gamma: number | null;
-  beta: number | null;
-}
-
 export default function BackgroundEffects() {
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0.5, y: 0.5 });
-  const [deviceOrientation, setDeviceOrientation] = useState<DeviceOrientation>({ gamma: null, beta: null });
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -25,6 +19,7 @@ export default function BackgroundEffects() {
   });
   const mouseRef = useRef<MousePosition>({ x: 0.5, y: 0.5 });
   const animationFrameRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef(0);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -37,15 +32,21 @@ export default function BackgroundEffects() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = {
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      };
-    };
+  // Throttled mousemove handler - max 30fps
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const now = performance.now();
+    if (now - lastUpdateRef.current < 33) return; // ~30fps
+    lastUpdateRef.current = now;
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    mouseRef.current = {
+      x: e.clientX / window.innerWidth,
+      y: e.clientY / window.innerHeight,
+    };
+  }, []);
+
+  // RAF loop for smooth animation - only when not reduced motion
+  useEffect(() => {
+    if (prefersReducedMotion) return;
 
     const animate = () => {
       setMousePosition(mouseRef.current);
@@ -55,39 +56,36 @@ export default function BackgroundEffects() {
     animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
+  // Mousemove listener with passive option
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove, prefersReducedMotion]);
+
+  // Device orientation - simplified, no permission request for better performance
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
     const handleOrientation = (e: DeviceOrientationEvent) => {
       if (e.gamma !== null && e.beta !== null) {
-        setDeviceOrientation({
-          gamma: Math.max(-90, Math.min(90, e.gamma)),
-          beta: Math.max(-90, Math.min(90, e.beta)),
-        });
+        mouseRef.current = {
+          x: 0.5 + (e.gamma / 90) * 0.3,
+          y: 0.5 + (e.beta / 90) * 0.3,
+        };
       }
     };
 
-    if (typeof DeviceOrientationEvent !== 'undefined' && 'requestPermission' in DeviceOrientationEvent) {
-      (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission().then((permission: string) => {
-        if (permission === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-        }
-      }).catch(() => {
-        window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-      });
-    } else {
-      window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-    }
-
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, []);
+    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [prefersReducedMotion]);
 
   if (prefersReducedMotion) {
     return (
@@ -99,6 +97,7 @@ export default function BackgroundEffects() {
           className="object-cover opacity-20"
           priority
           aria-hidden="true"
+          sizes="100vw"
         />
       </div>
     );
@@ -107,11 +106,8 @@ export default function BackgroundEffects() {
   const mouseX = (mousePosition.x - 0.5) * 2;
   const mouseY = (mousePosition.y - 0.5) * 2;
 
-  const deviceX = deviceOrientation.gamma !== null ? deviceOrientation.gamma / 90 : 0;
-  const deviceY = deviceOrientation.beta !== null ? deviceOrientation.beta / 90 : 0;
-
-  const combinedX = mouseX * 0.7 + deviceX * 0.3;
-  const combinedY = mouseY * 0.7 + deviceY * 0.3;
+  const combinedX = mouseX * 0.7;
+  const combinedY = mouseY * 0.7;
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden bg-white">
@@ -122,15 +118,16 @@ export default function BackgroundEffects() {
         className="object-cover opacity-20"
         priority
         aria-hidden="true"
+        sizes="100vw"
       />
 
       <div
-        className="absolute inset-0 z-0 opacity-[0.02]"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.02]"
         style={{
           backgroundImage: 'radial-gradient(circle at 1px 1px, #102a43 1px, transparent 0)',
           backgroundSize: '30px 30px',
         }}
-        aria-hidden="true"
       />
 
       <motion.div
@@ -205,33 +202,6 @@ export default function BackgroundEffects() {
         className="absolute bottom-[20%] right-[30%] w-100 h-100 rounded-full bg-gold-400/10 blur-[100px] mix-blend-multiply pointer-events-none"
         aria-hidden="true"
       />
-
-      <div className="absolute inset-0" aria-hidden="true">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <motion.div
-            key={i}
-            animate={{
-              x: [0, (i % 2 === 0 ? 1 : -1) * 50, 0],
-              y: [0, (i % 3 === 0 ? 1 : -1) * 40, 0],
-              rotate: [0, (i % 2 === 0 ? 1 : -1) * 15, 0],
-              opacity: [0.05, 0.12, 0.05],
-            }}
-            transition={{
-              duration: 15 + i * 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: i * 1.5,
-            }}
-            style={{
-              transform: `translate(${combinedX * 20}px, ${combinedY * 20}px)`,
-              width: `${80 + i * 20}px`,
-              height: `${80 + i * 20}px`,
-              top: `${10 + i * 12}%`,
-              left: `${15 + i * 8}%`,
-            }}
-          />
-        ))}
-      </div>
 
       <div className="absolute inset-0 bg-linear-to-b from-navy-950/10 via-transparent to-navy-950/10 pointer-events-none" aria-hidden="true" />
     </div>

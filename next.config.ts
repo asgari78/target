@@ -5,8 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'gutcdmaqciskdrecukkj.supabase.co',
-        pathname: '/storage/v1/object/public/**',
+        hostname: '**', // پذیرش تمام دامنه‌های https بدون محدودیت
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // پذیرش دامنه‌های http در صورت نیاز
       },
     ],
   },

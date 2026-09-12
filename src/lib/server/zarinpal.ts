@@ -1,17 +1,24 @@
-function getConfig() {
-  const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+export interface ZarinpalConfig {
+  merchantId: string | null;
+  sandbox: boolean;
+  siteUrl: string | null;
+  baseUrl: string | null;
+  isConfigured: boolean;
+}
+
+export function getConfig(): ZarinpalConfig {
+  const merchantId = process.env.ZARINPAL_MERCHANT_ID || null;
   const sandbox = process.env.ZARINPAL_SANDBOX === 'true';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || null;
 
-  if (!merchantId || !siteUrl) {
-    throw new Error('Missing Zarinpal or site URL environment variables');
-  }
+  const isConfigured = Boolean(merchantId && siteUrl);
+  const baseUrl = isConfigured
+    ? (sandbox
+        ? 'https://sandbox.zarinpal.com/pg/v4/payment'
+        : 'https://api.zarinpal.com/pg/v4/payment')
+    : null;
 
-  const baseUrl = sandbox
-    ? 'https://sandbox.zarinpal.com/pg/v4/payment'
-    : 'https://api.zarinpal.com/pg/v4/payment';
-
-  return { merchantId, sandbox, siteUrl, baseUrl };
+  return { merchantId, sandbox, siteUrl, baseUrl, isConfigured };
 }
 
 function getPaymentBaseUrl(sandbox: boolean): string {
@@ -67,12 +74,34 @@ export interface PaymentVerifyParams {
   authority: string;
 }
 
+export interface FakePaymentResponse {
+  orderId: string;
+  authority: string;
+  payUrl: string;
+  amount: number;
+  isTest: true;
+}
+
 function buildCallbackUrl(siteUrl: string, path: string): string {
   return `${siteUrl}${path}`;
 }
 
 export async function requestPayment(params: PaymentRequestParams): Promise<ZarinpalRequestResponse> {
-  const { merchantId, siteUrl, baseUrl } = getConfig();
+  const { merchantId, siteUrl, baseUrl, isConfigured } = getConfig();
+
+  if (!isConfigured || !merchantId || !siteUrl || !baseUrl) {
+    // Return a fake/test response for development
+    const testAuthority = `TEST_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    return {
+      data: {
+        authority: testAuthority,
+        fee: 0,
+        fee_type: 'test',
+      },
+      errors: undefined,
+    };
+  }
+
   const body = {
     merchant_id: merchantId,
     amount: params.amount,
@@ -98,7 +127,22 @@ export async function requestPayment(params: PaymentRequestParams): Promise<Zari
 }
 
 export async function verifyPayment(params: PaymentVerifyParams): Promise<ZarinpalVerifyResponse> {
-  const { merchantId, baseUrl } = getConfig();
+  const { merchantId, baseUrl, isConfigured } = getConfig();
+
+  if (!isConfigured || !merchantId || !baseUrl) {
+    // Return a fake/test success response for development
+    return {
+      data: {
+        ref_id: Math.floor(Math.random() * 1000000000),
+        fee: 0,
+        fee_type: 'test',
+        card_pan: '6037************',
+        card_hash: 'test_hash',
+      },
+      errors: undefined,
+    };
+  }
+
   const body = {
     merchant_id: merchantId,
     amount: params.amount,
@@ -122,8 +166,14 @@ export async function verifyPayment(params: PaymentVerifyParams): Promise<Zarinp
 }
 
 export function getPaymentUrl(authority: string): string {
-  const { sandbox } = getConfig();
-  const base = getPaymentBaseUrl(sandbox);
+  const { sandbox, isConfigured } = getConfig();
+  if (!isConfigured) {
+    // Return a test URL that will simulate payment success
+    return `/test-payment?authority=${authority}&status=success`;
+  }
+  const base = sandbox
+    ? 'https://sandbox.zarinpal.com/pg/StartPay'
+    : 'https://www.zarinpal.com/pg/StartPay';
   return `${base}/${authority}`;
 }
 

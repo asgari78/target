@@ -14,7 +14,6 @@ import {
   GraduationCap,
   Heart,
   Medal,
-  MousePointerClick,
   PenSquare,
   School,
   Sparkles,
@@ -37,22 +36,15 @@ type Instructor = {
 type InstructorCardProps = {
   teacher: Instructor;
   index: number;
-  open: boolean;
+  isOpen: boolean;
   canHover: boolean;
   onToggle: () => void;
-  onHoverOpen: () => void;
-  onHoverClose: () => void;
 };
 
 type ResumeListProps = {
   title: string;
   items?: string[];
   icon: ReactNode;
-};
-
-type AutoScrollResumeProps = {
-  active: boolean;
-  children: ReactNode;
 };
 
 const instructors: Instructor[] = [
@@ -167,131 +159,12 @@ function ResumeList({ title, items, icon }: ResumeListProps) {
   );
 }
 
-function AutoScrollResume({ active, children }: AutoScrollResumeProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const startTimeoutRef = useRef<number | null>(null);
-  const retryTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let cancelled = false;
-
-    const clearAll = () => {
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      if (startTimeoutRef.current !== null) {
-        window.clearTimeout(startTimeoutRef.current);
-        startTimeoutRef.current = null;
-      }
-      if (retryTimeoutRef.current !== null) {
-        window.clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
-    };
-
-    clearAll();
-    container.scrollTop = 0;
-
-    if (!active) {
-      return () => {
-        cancelled = true;
-        clearAll();
-      };
-    }
-
-    const START_DELAY = 4000;
-    const DOWN_SPEED = 0.5;
-    const UP_SPEED = 1.25;
-    const BOTTOM_PAUSE = 2500;
-    const RETRY_DELAY = 200;
-
-    type Direction = 'down' | 'up';
-    let direction: Direction = 'down';
-
-    const step = () => {
-      if (cancelled) return;
-
-      const el = containerRef.current;
-      if (!el) return;
-
-      const maxScroll = el.scrollHeight - el.clientHeight;
-
-      if (maxScroll <= 0) {
-        retryTimeoutRef.current = window.setTimeout(() => {
-          if (!cancelled) {
-            animationFrameRef.current = window.requestAnimationFrame(step);
-          }
-        }, RETRY_DELAY);
-        return;
-      }
-
-      if (direction === 'down') {
-        el.scrollTop += DOWN_SPEED;
-
-        if (el.scrollTop >= maxScroll - 1) {
-          el.scrollTop = maxScroll;
-          direction = 'up';
-
-          startTimeoutRef.current = window.setTimeout(() => {
-            if (!cancelled) {
-              animationFrameRef.current = window.requestAnimationFrame(step);
-            }
-          }, BOTTOM_PAUSE);
-
-          return;
-        }
-      } else {
-        el.scrollTop -= UP_SPEED;
-
-        if (el.scrollTop <= 0) {
-          el.scrollTop = 0;
-          direction = 'down';
-        }
-      }
-
-      animationFrameRef.current = window.requestAnimationFrame(step);
-    };
-
-    startTimeoutRef.current = window.setTimeout(() => {
-      if (!cancelled) {
-        animationFrameRef.current = window.requestAnimationFrame(step);
-      }
-    }, START_DELAY);
-
-    return () => {
-      cancelled = true;
-      clearAll();
-    };
-  }, [active]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="h-full min-h-0 overflow-y-auto p-2.5 sm:p-3.5"
-      style={{
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <div className="space-y-2 sm:space-y-2.5">{children}</div>
-    </div>
-  );
-}
-
 function InstructorCard({
   teacher,
   index,
-  open,
+  isOpen,
   canHover,
   onToggle,
-  onHoverOpen,
-  onHoverClose,
 }: InstructorCardProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -301,172 +174,91 @@ function InstructorCard({
   };
 
   return (
-    <motion.li
-      initial={{ opacity: 0, y: 16, scale: 0.985 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.42, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
-      className="group list-none"
-      onMouseEnter={() => {
-        if (canHover) onHoverOpen();
-      }}
-      onMouseLeave={() => {
-        if (canHover) onHoverClose();
-      }}
-    >
-      <button
+    <button
         type="button"
-        aria-expanded={open}
+        aria-expanded={isOpen}
         aria-label={`نمایش رزومه و سوابق ${teacher.name}`}
         onClick={onToggle}
         onKeyDown={handleKeyDown}
         className="block w-full cursor-pointer text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
       >
-        <div style={{ perspective: '1800px' }}>
+        {/* Front face - always rendered, simple conditional for open state */}
+        <article
+          className={`
+            relative flex flex-col overflow-hidden rounded-2xl
+            border border-slate-200/90 bg-white/90 text-right shadow-sm
+            backdrop-blur-[2px] transition-all duration-300
+            hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
+            ${isOpen ? 'md:max-h-[500px] overflow-y-auto' : 'h-[440px] sm:h-[480px]'}
+          `}
+        >
+          {/* Radial Glow & Inner Border matching CourseRow */}
           <div
-            className="relative h-[440px] sm:h-[480px] w-full transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform"
-            style={{
-              transform: open ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              transformStyle: 'preserve-3d',
-            }}
-          >
-            {/* FRONT FACE */}
-            <article
-              className="
-                absolute inset-0 flex flex-col overflow-hidden rounded-2xl
-                border border-slate-200/90 bg-white/90 text-right shadow-sm
-                backdrop-blur-[2px] transition-all duration-300
-                hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
-              "
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-              }}
-            >
-              {/* Radial Glow & Inner Border matching CourseRow */}
-              <div
-                aria-hidden="true"
-                className="
-                  pointer-events-none absolute inset-0 z-[1]
-                  bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
-                      radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
-                "
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
-              />
+            aria-hidden="true"
+            className="
+              pointer-events-none absolute inset-0 z-[1]
+              bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
+                  radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
+            "
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
+          />
 
-              {/* Teacher Image */}
-              <div className="relative z-[2] aspect-square w-full overflow-hidden bg-slate-100">
-                <img
-                  src={teacher.image}
-                  alt={teacher.name}
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
+          {/* Teacher Image */}
+          <div className="relative z-[2] aspect-square w-full overflow-hidden bg-slate-100 flex-shrink-0">
+            <Image
+              src={teacher.image}
+              alt={teacher.name}
+              fill
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              priority={index < 2}
+            />
 
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
-                />
-
-                {/* Top Badge */}
-                <div className="absolute right-2 top-2 z-10">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/90 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
-                    <School className="h-3 w-3 text-emerald-600" />
-                    معلم رسمی آموزش و پرورش
-                  </span>
-                </div>
-
-                {/* Mobile interaction hint */}
-                <div className="absolute bottom-2 left-2 z-10 sm:hidden">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-[2px]">
-                    <MousePointerClick className="h-2.5 w-2.5 text-amber-300" />
-                    لمس برای رزومه
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div className="relative z-[2] flex flex-1 flex-col justify-between p-2.5 sm:p-3.5">
-                <div>
-                  <h4
-                    style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-                    className="
-                      text-lg sm:text-xl md:text-2xl leading-snug text-slate-900
-                      transition-colors duration-300 group-hover:text-slate-950
-                    "
-                  >
-                    {teacher.name}
-                  </h4>
-
-                  <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-600 line-clamp-1">
-                    {teacher.role}
-                  </p>
-                </div>
-
-                {/* Bottom CTA Bar */}
-                <div className="-mx-2.5 -mb-2.5 mt-2 sm:-mx-3.5 sm:-mb-3.5">
-                  <div
-                    className="
-                      group/cta inline-flex w-full items-center justify-center gap-1.5
-                      rounded-b-[14px] border-t border-slate-300/70
-                      bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
-                      px-2 py-2 text-[11px] font-extrabold text-white
-                      shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]
-                      transition-all duration-300
-                      group-hover:from-black group-hover:via-slate-900 group-hover:to-black
-                      sm:py-2.5 sm:text-xs
-                    "
-                  >
-                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-400/90 text-black shadow-sm">
-                      <Sparkles className="h-3 w-3" />
-                    </span>
-                    مشاهده سوابق و رزومه کامل
-                  </div>
-                </div>
-              </div>
-
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
-              />
-            </article>
-
-            {/* BACK FACE */}
             <div
-              className="
-                absolute inset-0 flex h-full flex-col overflow-hidden rounded-2xl
-                border border-slate-300/90 bg-slate-50/95 shadow-md
-                backdrop-blur-[2px] text-right
-              "
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-              }}
-            >
-              {/* Back Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 py-2 sm:px-4 sm:py-2.5 backdrop-blur-sm">
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-[11px] font-bold text-amber-600">
-                    رزومه و دستاوردها
-                  </span>
-                  <h5 className="truncate text-sm sm:text-base font-extrabold text-slate-900">
-                    {teacher.name}
-                  </h5>
-                </div>
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
+            />
 
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-100/90 px-2 py-1 text-[10px] font-semibold text-slate-600">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  اسکرول خودکار
-                </span>
-              </div>
+            {/* Top Badge */}
+            <div className="absolute right-2 top-2 z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/90 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                <School className="h-3 w-3 text-emerald-600" />
+                معلم رسمی آموزش و پرورش
+              </span>
+            </div>
 
-              {/* Scrollable Content */}
-              <div className="min-h-0 flex-1 overflow-hidden bg-slate-50/50">
-                <AutoScrollResume active={open}>
+            {/* Mobile interaction hint */}
+            <div className="absolute bottom-2 left-2 z-10 sm:hidden">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-[2px]">
+                <span className="text-[10px]">☰</span>
+                {isOpen ? 'بازگشت' : 'مس برای رزومه'}
+              </span>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className="relative z-[2] flex flex-1 flex-col justify-between p-2.5 sm:p-3.5 min-h-0">
+            <div className="flex-1 min-h-0">
+              <h4
+                style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+                className="
+                  text-lg sm:text-xl md:text-2xl leading-snug text-slate-900
+                  transition-colors duration-300 group-hover:text-slate-950
+                "
+              >
+                {teacher.name}
+              </h4>
+
+              <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-600 line-clamp-1">
+                {teacher.role}
+              </p>
+
+              {/* Expanded content when open */}
+              {isOpen && (
+                <div className="mt-4 space-y-3 pt-4 border-t border-slate-200/80 animate-in fade-in slide-down duration-300">
                   {/* Quote block */}
                   <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 p-2.5 sm:p-3">
                     <div className="mb-1.5 flex items-center justify-between gap-1">
@@ -515,25 +307,42 @@ function InstructorCard({
                     icon={<Sparkles className="h-3 w-3" />}
                     items={teacher.teachingStyle}
                   />
-                </AutoScrollResume>
-              </div>
-
-              {/* Back Footer action */}
-              <div className="border-t border-slate-200/90 bg-white/90 p-2 text-center">
-                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:hidden">
-                  برای بازگشت به نمای اصلی کلیک کنید
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 hidden sm:block">
-                  برای بازگشت به نمای اصلی موس را خارج کنید 
-                </span>
-              </div>
+                </div>
+              )}
             </div>
+
+            {/* Bottom CTA Bar - only show when closed */}
+            {!isOpen && (
+              <div className="-mx-2.5 -mb-2.5 mt-2 sm:-mx-3.5 sm:-mb-3.5 flex-shrink-0">
+                <div
+                  className="
+                    group/cta inline-flex w-full items-center justify-center gap-1.5
+                    rounded-b-[14px] border-t border-slate-300/70
+                    bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
+                    px-2 py-2 text-[11px] font-extrabold text-white
+                    shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]
+                    transition-all duration-300
+                    group-hover:from-black group-hover:via-slate-900 group-hover:to-black
+                    sm:py-2.5 sm:text-xs
+                  "
+                >
+                  <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-400/90 text-black shadow-sm">
+                    <Sparkles className="h-3 w-3" />
+                  </span>
+                  مشاهده سوابق و رزومه کامل
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
+          />
+        </article>
       </button>
-    </motion.li>
-  );
-}
+    );
+  }
 
 export default function AboutSection() {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
@@ -612,37 +421,57 @@ export default function AboutSection() {
           <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
         </motion.header>
 
-        {/* Teachers Grid */}
-        <ul
-          role="list"
+        {/* Teachers Grid - Mobile horizontal scroll, Desktop grid */}
+        <div
+          role="region"
           aria-label="اساتید آکادمی تارگت"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          className="
+            -mx-3 flex gap-3 overflow-x-auto px-3 pb-4 pt-1
+            snap-x snap-mandatory scrollbar-none
+            sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:p-0
+            lg:grid-cols-3 lg:gap-5
+          "
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+          }}
         >
           {instructors.map((teacher, index) => {
             const isOpen = activeCardId === teacher.id;
 
             return (
-              <InstructorCard
+              <motion.li
                 key={teacher.id}
-                teacher={teacher}
-                index={index}
-                open={isOpen}
-                canHover={canHover}
-                onToggle={() => handleCardToggle(teacher.id)}
-                onHoverOpen={() => {
+                initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.42, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                className="
+                  group h-full shrink-0 snap-start list-none
+                  w-[88%] xs:w-[80%] sm:w-auto
+                "
+                onMouseEnter={() => {
                   if (canHover) setActiveCardId(teacher.id);
                 }}
-                onHoverClose={() => {
+                onMouseLeave={() => {
                   if (canHover) {
                     setActiveCardId((currentId) =>
                       currentId === teacher.id ? null : currentId,
                     );
                   }
                 }}
-              />
+              >
+                <InstructorCard
+                  teacher={teacher}
+                  index={index}
+                  isOpen={isOpen}
+                  canHover={canHover}
+                  onToggle={() => handleCardToggle(teacher.id)}
+                />
+              </motion.li>
             );
           })}
-        </ul>
+        </div>
       </div>
     </section>
   );
