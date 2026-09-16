@@ -17,7 +17,7 @@ export interface Slide {
 const defaultSlides: Slide[] = [
   {
     id: 1,
-    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/YZxZhWSzED8j4InHHF0c59CiF9s-mR4P7fBiSke6vWVUno6Q8w.jpg',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/Online_Mobile.jpg',
     alt: 'موسسه آموزشی تارگت - کلاس‌های آنلاین',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },
