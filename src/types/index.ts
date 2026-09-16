@@ -298,7 +298,8 @@ export interface FakePaymentResponse {
   isTest: true;
 }
 
-export interface ModalPaymentState {
-  mode: 'idle' | 'initiating' | 'redirecting' | 'result';
-  result?: PaymentResult;
-}
+export type ModalPaymentState = 
+  | { mode: 'idle' }
+  | { mode: 'initiating' }
+  | { mode: 'redirecting'; paymentUrl: string }
+  | { mode: 'result'; result: PaymentResult };

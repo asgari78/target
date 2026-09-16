@@ -448,35 +448,35 @@ export default function StatsSection() {
       id="stats"
       dir="rtl"
       aria-labelledby="stats-heading"
-      className="relative z-10 mt-4 py-8 md:mt-6 md:py-12 overflow-hidden"
+      className="relative z-10 mt-4 py-4 md:mt-6 md:py-8 overflow-hidden"
     >
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
+        {/* Header - کاملاً همسان‌سازی شده با تم AboutSection */}
         <motion.header
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="mb-8 md:mb-10 text-right"
+          className="mb-6 md:mb-8"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-[#111B2F] mb-3 shadow-xs">
-            <Sparkles className="h-3.5 w-3.5 text-[#E6A801] animate-pulse" />
-            کارنامه عملکرد و دستاوردهای درخشان
-          </div>
-
           <h2 id="stats-heading" className="flex flex-col items-start gap-1 text-right">
             <span
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-              className="inline-flex items-center gap-2 text-xl leading-tight text-[#111B2F] sm:text-2xl md:text-3xl"
+              className="inline-flex items-center gap-2 text-xl leading-tight text-slate-900 sm:text-2xl md:text-4xl"
             >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-amber-300 shadow-sm md:h-10 md:w-10">
+                <GraduationCap className="h-4 w-4 md:h-5 md:w-5" />
+              </span>
               شاخص‌های موفقیت آکادمی تارگت
             </span>
 
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 sm:text-sm md:text-base mt-1">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 sm:text-xs md:text-sm">
               رشد واقعی با آموزش تخصصی و آزمون‌های هوش و خلاقیت
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#E6A801]" />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
             </span>
           </h2>
+
+          <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
         </motion.header>
 
         {/* Error View */}

@@ -29,7 +29,7 @@ const defaultSlides: Slide[] = [
   },
   {
     id: 3,
-    image: '/images/slider/3.png',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/Ofline_Mobile.jpg',
     alt: 'موسسه آموزشی تارگت - محیط آموزشی',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },
@@ -89,7 +89,7 @@ export default function HeroSlider({
   autoPlay = true,
   autoPlayInterval = 5000,
   className,
-  heightClassName = 'h-[24vh] sm:h-[30vh] md:h-[32vh] lg:h-[40vh] xl:h-[44vh] min-h-[24vh] max-h-[44vh]',
+  heightClassName = 'h-[26vh] sm:h-[30vh] md:h-[32vh] lg:h-[40vh] xl:h-[44vh] min-h-[24vh] max-h-[44vh]',
 }: HeroSliderProps) {
   const safeSlides = slides ?? [];
   const hasSlides = safeSlides.length > 0;

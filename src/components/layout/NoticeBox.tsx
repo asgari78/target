@@ -22,7 +22,7 @@ export default function NoticeBox({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 3000);
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -47,7 +47,7 @@ export default function NoticeBox({
             transition: { duration: 0.22, ease: 'easeIn' },
           }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className={`fixed top-3 right-3 z-50 ${className}`}
+          className={`fixed bottom-3 right-3 z-50 ${className}`}
         >
           <div className="w-[min(95vw,42rem)] cursor-pointer rounded-2xl bg-white/85 shadow-lg shadow-slate-900/10 backdrop-blur-md">
             <div className="flex items-center gap-3 py-1.5 px-3.5 md:px-3.5 md:py-2.5 sm:items-center sm:gap-4 sm:px-5 sm:py-4">

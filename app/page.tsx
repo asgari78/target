@@ -84,12 +84,12 @@ function CoursesContent() {
     <>
       <NoticeBox />
       <HeroSlider />
+      <StatsSection />
       <CourseList
         courses={courses}
         isLoading={loading}
         onRegisterClick={handleRegister}
       />
-      <StatsSection />
       <AboutSection />
       <WhyTargetSection />
       <TestimonialsSection />
@@ -109,14 +109,14 @@ function LoadingFallback() {
       <NoticeBox />
       <HeroSlider />
       <StatsSection />
-      <AboutSection />
-      <WhyTargetSection />
-      <TestimonialsSection />
       <CourseList
         courses={[]}
         isLoading={true}
         onRegisterClick={() => {}}
       />
+      <AboutSection />
+      <WhyTargetSection />
+      <TestimonialsSection />
       <Footer />
     </>
   );
