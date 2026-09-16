@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle2, AlertCircle, User, Phone, CreditCard, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, User, Phone, CreditCard } from 'lucide-react';
 import { cn, formatPrice, getModeLabel } from '@/src/lib/utils';
 import { registrationSchema, type RegistrationFormValues } from '@/src/lib/validations';
 import type { Course, PaymentMode, RegistrationType, CourseOffering, OrderPricingResult } from '@/src/types';
@@ -14,8 +14,8 @@ interface RegistrationFormProps {
   registrationType: RegistrationType;
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
-  onPaymentInitiate: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType; paymentMode: PaymentMode }) => Promise<void>;
-  onConsultation: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType }) => Promise<void>;
+  onPaymentInitiate: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType; paymentMode: PaymentMode }) => void;
+  onConsultation: (data: RegistrationFormValues & { courseId: string; registrationType: RegistrationType }) => void;
   isLoading: boolean;
   error: string | null;
   variant: 'payment' | 'consultation';
@@ -42,21 +42,17 @@ export default function RegistrationForm({
   isLoading,
   error,
   variant,
-  onClose,
   offering,
   pricing,
   firstInstallmentAmount,
   installmentItems,
 }: RegistrationFormProps) {
-  const [submitType, setSubmitType] = useState<'payment' | 'consultation' | null>(null);
-
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting, isValid, isDirty },
+    formState: { errors, isSubmitting },
     setValue,
-    trigger,
   } = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
     mode: 'onBlur',
@@ -86,73 +82,31 @@ export default function RegistrationForm({
 
   const modeLabel = getModeLabel(registrationType);
   const isInstallment = paymentMode === 'installment';
-  const payableAmount = isInstallment ? (firstInstallmentAmount ?? pricing?.installments[0]?.amount ?? 0) : (pricing?.baseAmount ?? 0);
+  const payableAmount = isInstallment
+    ? (firstInstallmentAmount ?? pricing?.installments[0]?.amount ?? 0)
+    : (pricing?.baseAmount ?? 0);
 
-  const isFormValid = isValid && isDirty && !!watchedStudentName?.trim() && !!watchedPhoneNumber?.trim();
+  // Form is valid when both fields have values and pass validation
+  const isNameValid = !!watchedStudentName?.trim() && !errors.studentName;
+  const isPhoneValid = !!watchedPhoneNumber?.trim() && !errors.phoneNumber;
+  const isFormValid = isNameValid && isPhoneValid;
 
-  const onSubmitPayment = async (values: RegistrationFormValues) => {
-    setSubmitType('payment');
-    try {
-      await onPaymentInitiate({
-        ...values,
-        courseId: course.id,
-        registrationType,
-        paymentMode,
-      });
-    } catch (err) {
-      console.error('Payment initiation error:', err);
-    }
+  const onSubmitPayment = (values: RegistrationFormValues) => {
+    onPaymentInitiate({
+      ...values,
+      courseId: course.id,
+      registrationType,
+      paymentMode,
+    });
   };
 
-  const onSubmitConsultation = async (values: RegistrationFormValues) => {
-    setSubmitType('consultation');
-    try {
-      await onConsultation({
-        ...values,
-        courseId: course.id,
-        registrationType,
-      });
-    } catch (err) {
-      console.error('Consultation error:', err);
-    }
+  const onSubmitConsultation = (values: RegistrationFormValues) => {
+    onConsultation({
+      ...values,
+      courseId: course.id,
+      registrationType,
+    });
   };
-
-  if (submitType) {
-    return (
-      <div className="space-y-4 text-center py-8" dir="rtl">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100"
-        >
-          <CheckCircle2 className="h-8 w-8 text-emerald-600" aria-hidden="true" />
-        </motion.div>
-        <h3 className="text-xl font-bold text-slate-900">
-          {submitType === 'consultation' ? 'درخواست مشاوره با موفقیت ثبت شد' : 'درخواست پرداخت ارسال شد'}
-        </h3>
-        <p className="text-slate-600">
-          {submitType === 'consultation'
-            ? `شما برای دوره «${course.title}» (${modeLabel}) درخواست مشاوره دادید.`
-            : `برای تکمیل ثبت‌نام به درگاه پرداخت هدایت می‌شوید.`}
-        </p>
-        <p className="text-sm text-slate-500 mt-2">
-          {submitType === 'consultation'
-            ? 'پشتیبانی موسسه در سریع‌ترین وقت با شما تماس خواهد گرفت.'
-            : 'در صورت عدم انتقال خودکار، روی دکمه زیر کلیک کنید.'}
-        </p>
-        {submitType === 'payment' && (
-          <button
-            onClick={onClose}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            بستن و بازگشت
-          </button>
-        )}
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit(variant === 'payment' ? onSubmitPayment : onSubmitConsultation)} className="space-y-4" dir="rtl" noValidate>

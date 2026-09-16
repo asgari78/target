@@ -36,6 +36,7 @@ Create a `.env.local` file in the project root with the following variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ZARINPAL_SANDBOX` | Use Zarinpal sandbox environment for testing | `false` |
+| `PAYMENT_MODE` | Payment mode: `mock` for development without Zarinpal, `real` for production | `real` (if Zarinpal configured) |
 
 ### Example `.env.local`
 
@@ -51,6 +52,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ZARINPAL_MERCHANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ZARINPAL_SANDBOX=true
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+
+# Payment Mode (optional)
+# PAYMENT_MODE=mock   # Use mock payments for development (no real gateway calls)
+# PAYMENT_MODE=real   # Use real Zarinpal (requires valid credentials)
 ```
 
 **⚠️ Security Note**: Never commit `.env.local` to version control. The `SUPABASE_SERVICE_ROLE_KEY` must only be used in server-side code (API routes, server actions).
@@ -121,6 +126,27 @@ https://yourdomain.com/api/payments/zarinpal/callback
 Set `ZARINPAL_SANDBOX=true` in `.env.local` for testing:
 - Sandbox Merchant ID: Use the test ID from Zarinpal docs
 - Test card numbers available in Zarinpal documentation
+
+## Mock Payment Mode (Development)
+
+For development without real Zarinpal credentials, you can use **Mock Payment Mode**:
+
+1. Set `PAYMENT_MODE=mock` in `.env.local` (or leave `ZARINPAL_MERCHANT_ID` empty)
+2. The system will:
+   - Create orders in Supabase with `status: 'pending'`
+   - Generate mock payment authorities (`MOCK_<timestamp>_<random>`)
+   - Show success directly in the modal without redirecting to Zarinpal
+   - Log mock payment events in `payment_logs` table
+3. No real payment gateway calls are made
+4. Orders are persisted in the database for testing
+
+This allows full end-to-end testing of the registration flow without requiring Zarinpal credentials.
+
+To switch to real Zarinpal mode later:
+1. Set `PAYMENT_MODE=real` (or remove the variable)
+2. Add valid `ZARINPAL_MERCHANT_ID` and `NEXT_PUBLIC_SITE_URL`
+3. Configure callback URL in Zarinpal merchant panel
+4. No code changes required
 
 ## Project Structure
 

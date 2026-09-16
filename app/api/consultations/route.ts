@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/src/lib/server/supabaseAdmin';
+import { normalizeMobile } from '@/src/lib/validations';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Normalize phone number
+    const normalizedPhone = normalizeMobile(body.phoneNumber);
+
+    // Validate phone format
+    const iranianMobileRegex = /^(?:09)9\d{8}$/;
+    if (!iranianMobileRegex.test(normalizedPhone)) {
+      return NextResponse.json({ error: 'شماره موبایل معتبر نیست' }, { status: 400 });
+    }
+
     // Fetch course to check availability
     const { data: course, error: courseError } = await supabaseAdmin()
       .from('courses')
@@ -28,6 +38,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (courseError || !course) {
+      console.error('Course fetch error:', courseError);
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
@@ -40,34 +51,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This mode is not available for this course' }, { status: 400 });
     }
 
-    // Create consultation request
+    // Create consultation request - use upsert to handle duplicates gracefully
     const { data: consultation, error: consultationError } = await supabaseAdmin()
       .from('registration_requests')
-      .insert({
+      .upsert({
         course_id: body.courseId,
-        phone_number: body.phoneNumber,
-        student_name: body.studentName,
+        phone_number: normalizedPhone,
+        student_name: body.studentName.trim(),
         registration_type: body.registrationType,
-        payment_mode: 'cash', // Consultation is free, payment mode not applicable
+        payment_mode: 'cash',
         status: 'new',
+      }, {
+        onConflict: 'course_id,phone_number',
+        ignoreDuplicates: false,
       })
       .select()
       .single();
 
     if (consultationError) {
-      if (consultationError.code === '23505') {
-        return NextResponse.json({ error: 'This phone number already has a consultation request for this course' }, { status: 409 });
-      }
       console.error('Consultation creation error:', consultationError);
+      if (consultationError.code === '23505') {
+        return NextResponse.json(
+          { error: 'This phone number already has a request for this course' },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: 'Failed to create consultation request' }, { status: 500 });
     }
 
     // Log consultation
-    await supabaseAdmin().from('payment_logs').insert({
+    const { error: logError } = await supabaseAdmin().from('payment_logs').insert({
       order_id: consultation.id,
       event: 'consultation_created',
       payload: { courseId: body.courseId, registrationType: body.registrationType },
     });
+    if (logError) {
+      console.error('Failed to log consultation:', logError);
+    }
 
     return NextResponse.json({
       success: true,

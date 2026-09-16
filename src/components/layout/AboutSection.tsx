@@ -15,6 +15,7 @@ import {
   Heart,
   Medal,
   PenSquare,
+  RotateCcw,
   School,
   Sparkles,
   Users2,
@@ -139,18 +140,18 @@ function ResumeList({ title, items, icon }: ResumeListProps) {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white/95 p-2.5 sm:p-3 shadow-xs">
-      <h5 className="mb-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-900 text-amber-300">
+    <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-2.5 shadow-xs transition-colors hover:bg-white">
+      <h5 className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-900">
+        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-500 text-white shadow-xs">
           {icon}
         </span>
         {title}
       </h5>
 
-      <ul className="space-y-1 text-[11px] sm:text-xs leading-5 sm:leading-6 text-slate-600">
+      <ul className="space-y-1 text-[11px] leading-5 font-medium text-slate-700">
         {items.map((item, index) => (
           <li key={`${title}-${index}`} className="flex items-start gap-1.5">
-            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
             <span>{item}</span>
           </li>
         ))}
@@ -166,7 +167,7 @@ function InstructorCard({
   canHover,
   onToggle,
 }: InstructorCardProps) {
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onToggle();
@@ -174,175 +175,220 @@ function InstructorCard({
   };
 
   return (
-    <button
-        type="button"
-        aria-expanded={isOpen}
-        aria-label={`نمایش رزومه و سوابق ${teacher.name}`}
-        onClick={onToggle}
-        onKeyDown={handleKeyDown}
-        className="block w-full cursor-pointer text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+    <div
+      tabIndex={0}
+      role="button"
+      aria-expanded={isOpen}
+      aria-label={`نمایش سوابق و رزومه ${teacher.name}`}
+      onClick={onToggle}
+      onKeyDown={handleKeyDown}
+      className="group relative h-[470px] sm:h-[500px] w-full cursor-pointer select-none rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+      style={{ perspective: 1200 }}
+    >
+      {/* Motion Card Wrapper with 3D Transform */}
+      <motion.div
+        className="relative h-full w-full rounded-2xl"
+        style={{ transformStyle: 'preserve-3d' }}
+        animate={{ rotateY: isOpen ? 180 : 0 }}
+        transition={{ duration: 0.65, ease: [0.23, 1, 0.32, 1] }}
       >
-        {/* Front face - always rendered, simple conditional for open state */}
-        <article
-          className={`
-            relative flex flex-col overflow-hidden rounded-2xl
-            border border-slate-200/90 bg-white/90 text-right shadow-sm
-            backdrop-blur-[2px] transition-all duration-300
-            hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/35 hover:border-slate-300/95
-            ${isOpen ? 'md:max-h-[500px] overflow-y-auto' : 'h-[440px] sm:h-[480px]'}
-          `}
+        {/* ================= روی کارت (FRONT FACE) ================= */}
+        <div
+          className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 text-right shadow-sm backdrop-blur-[2px] transition-all duration-300 hover:shadow-lg"
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}
         >
-          {/* Radial Glow & Inner Border matching CourseRow */}
+          {/* Radial Glow Layer */}
           <div
             aria-hidden="true"
-            className="
-              pointer-events-none absolute inset-0 z-[1]
-              bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),
-                  radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]
-            "
+            className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(80%_45%_at_100%_0%,rgba(250,204,21,0.14),transparent_60%),radial-gradient(75%_45%_at_0%_100%,rgba(139,92,246,0.08),transparent_60%)]"
           />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-[1px] z-[1] rounded-[15px] border border-white/70"
           />
 
-          {/* Teacher Image */}
-          <div className="relative z-[2] aspect-square w-full overflow-hidden bg-slate-100 flex-shrink-0">
+          {/* تصویر استاد */}
+          <div className="relative z-[2] aspect-[1/1] w-full shrink-0 overflow-hidden bg-slate-100">
             <Image
               src={teacher.image}
               alt={teacher.name}
               fill
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               priority={index < 2}
             />
 
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent"
             />
 
-            {/* Top Badge */}
-            <div className="absolute right-2 top-2 z-10">
+            {/* نشان رسمی آموزش و پرورش */}
+            <div className="absolute right-2.5 top-2.5 z-10">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/90 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
                 <School className="h-3 w-3 text-emerald-600" />
                 معلم رسمی آموزش و پرورش
               </span>
             </div>
 
-            {/* Mobile interaction hint */}
-            <div className="absolute bottom-2 left-2 z-10 sm:hidden">
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-[2px]">
-                <span className="text-[10px]">☰</span>
-                {isOpen ? 'بازگشت' : 'مس برای رزومه'}
+            {/* راهنمای لمسی در موبایل */}
+            <div className="absolute bottom-2.5 left-2.5 z-10 sm:hidden">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur-xs">
+                <RotateCcw className="h-2.5 w-2.5" />
+                لمس برای رزومه کامل
               </span>
             </div>
           </div>
 
-          {/* Card Body */}
-          <div className="relative z-[2] flex flex-1 flex-col justify-between p-2.5 sm:p-3.5 min-h-0">
-            <div className="flex-1 min-h-0">
+          {/* محتوای متنی روی کارت */}
+          <div className="relative z-[2] flex flex-1 flex-col justify-between p-3.5">
+            <div>
               <h4
                 style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-                className="
-                  text-lg sm:text-xl md:text-2xl leading-snug text-slate-900
-                  transition-colors duration-300 group-hover:text-slate-950
-                "
+                className="text-xl sm:text-2xl leading-tight text-slate-900 transition-colors group-hover:text-amber-600"
               >
                 {teacher.name}
               </h4>
 
-              <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-600 line-clamp-1">
+              <p className="mt-1 text-xs font-semibold text-slate-600 line-clamp-1">
                 {teacher.role}
               </p>
 
-              {/* Expanded content when open */}
-              {isOpen && (
-                <div className="mt-4 space-y-3 pt-4 border-t border-slate-200/80 animate-in fade-in slide-down duration-300">
-                  {/* Quote block */}
-                  <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 p-2.5 sm:p-3">
-                    <div className="mb-1.5 flex items-center justify-between gap-1">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                        <Heart className="h-2.5 w-2.5 fill-amber-300" />
-                        کلام استاد
-                      </span>
-
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
-                        <School className="h-3 w-3" />
-                        رسمی آموزش و پرورش
-                      </span>
-                    </div>
-
-                    <p className="text-justify text-[11px] sm:text-xs leading-5 sm:leading-6 text-slate-700">
-                      {teacher.quote}
-                    </p>
-                  </div>
-
-                  <ResumeList
-                    title="سابقه تدریس"
-                    icon={<BookOpen className="h-3 w-3" />}
-                    items={teacher.experience}
-                  />
-
-                  <ResumeList
-                    title="تحصیلات دانشگاهی"
-                    icon={<GraduationCap className="h-3 w-3" />}
-                    items={teacher.education}
-                  />
-
-                  <ResumeList
-                    title="تألیفات و انتشارات"
-                    icon={<PenSquare className="h-3 w-3" />}
-                    items={teacher.publications}
-                  />
-
-                  <ResumeList
-                    title="رتبه‌های برتر و قبولی‌ها"
-                    icon={<Medal className="h-3 w-3" />}
-                    items={teacher.topRanks}
-                  />
-
-                  <ResumeList
-                    title="سبک و متد تدریس"
-                    icon={<Sparkles className="h-3 w-3" />}
-                    items={teacher.teachingStyle}
-                  />
-                </div>
-              )}
+              <div className="mt-2.5 rounded-xl border border-amber-100 bg-amber-50/60 p-2">
+                <p className="text-[11px] leading-relaxed text-slate-700 line-clamp-2">
+                  {teacher.quote}
+                </p>
+              </div>
             </div>
 
-            {/* Bottom CTA Bar - only show when closed */}
-            {!isOpen && (
-              <div className="-mx-2.5 -mb-2.5 mt-2 sm:-mx-3.5 sm:-mb-3.5 flex-shrink-0">
-                <div
-                  className="
-                    group/cta inline-flex w-full items-center justify-center gap-1.5
-                    rounded-b-[14px] border-t border-slate-300/70
-                    bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
-                    px-2 py-2 text-[11px] font-extrabold text-white
-                    shadow-[0_-1px_0_rgba(255,255,255,0.08)_inset]
-                    transition-all duration-300
-                    group-hover:from-black group-hover:via-slate-900 group-hover:to-black
-                    sm:py-2.5 sm:text-xs
-                  "
-                >
-                  <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-400/90 text-black shadow-sm">
-                    <Sparkles className="h-3 w-3" />
-                  </span>
-                  مشاهده سوابق و رزومه کامل
-                </div>
+            {/* دکمه اکشن پایین کارت رو */}
+            <div className="pt-2">
+              <div
+                className="
+                  inline-flex w-full items-center justify-center gap-2
+                  rounded-xl border border-slate-300/80
+                  bg-linear-to-r from-slate-900 via-slate-800 to-slate-900
+                  py-2.5 text-xs font-extrabold text-white shadow-sm
+                  transition-all duration-300 group-hover:from-black group-hover:via-slate-900
+                "
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-black">
+                  <Sparkles className="h-2.5 w-2.5" />
+                </span>
+                مشاهده کارنامه و رزومه کامل
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+
+        {/* ================= پشت کارت (BACK FACE - رزومه با تم روشن و جذاب) ================= */}
+        <div
+          className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-linear-to-b from-white via-slate-50/90 to-amber-50/20 text-right shadow-lg"
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+        >
+          {/* افکت نوری گوشه‌ها برای جذابیت و عمق */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(75%_45%_at_100%_0%,rgba(251,191,36,0.15),transparent_60%),radial-gradient(75%_45%_at_0%_100%,rgba(16,185,129,0.06),transparent_60%)]"
+          />
+
+          {/* هدر بالای پشت کارت */}
+          <div className="relative z-10 flex items-center justify-between border-b border-slate-200/80 bg-white/80 p-3 backdrop-blur-md">
+            <div className="flex items-center gap-2.5">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-amber-400/80 shadow-xs">
+                <Image
+                  src={teacher.image}
+                  alt={teacher.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <h5
+                  style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+                  className="text-base sm:text-lg leading-tight text-slate-900"
+                >
+                  {teacher.name}
+                </h5>
+                <span className="text-[10px] font-bold text-amber-700">سوابق علمی و آموزشی</span>
+              </div>
+            </div>
+
+            <span className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
+              <RotateCcw className="h-3 w-3 text-amber-600" />
+              بازگشت
+            </span>
           </div>
 
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-300 group-hover:ring-amber-300/70"
-          />
-        </article>
-      </button>
-    );
-  }
+          {/* لیست اسکرول‌خور محتوای رزومه با کنتراست عالی */}
+          <div
+            className="relative z-10 flex-1 space-y-2.5 overflow-y-auto p-3.5 scrollbar-thin scrollbar-thumb-slate-200"
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            {/* کلام استاد */}
+            <div className="rounded-xl border border-amber-200/90 bg-amber-50/80 p-2.5 shadow-xs">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-extrabold text-amber-900">
+                  <Heart className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                  پیام استاد به تارگتی‌ها
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                  <School className="h-3 w-3" />
+                  رسمی آموزش و پرورش
+                </span>
+              </div>
+              <p className="text-justify text-[11px] leading-5 font-medium text-slate-700">
+                {teacher.quote}
+              </p>
+            </div>
+
+            <ResumeList
+              title="سابقه تدریس"
+              icon={<BookOpen className="h-3 w-3" />}
+              items={teacher.experience}
+            />
+
+            <ResumeList
+              title="تحصیلات دانشگاهی"
+              icon={<GraduationCap className="h-3 w-3" />}
+              items={teacher.education}
+            />
+
+            <ResumeList
+              title="تألیفات و انتشارات"
+              icon={<PenSquare className="h-3 w-3" />}
+              items={teacher.publications}
+            />
+
+            <ResumeList
+              title="رتبه‌های برتر و قبولی‌ها"
+              icon={<Medal className="h-3 w-3" />}
+              items={teacher.topRanks}
+            />
+
+            <ResumeList
+              title="سبک و متد تدریس"
+              icon={<Sparkles className="h-3 w-3" />}
+              items={teacher.teachingStyle}
+            />
+          </div>
+
+          {/* نوار پایانی پشت کارت */}
+          <div className="relative z-10 border-t border-slate-200/80 bg-white/90 px-3 py-2 text-center text-[10px] font-bold text-slate-600">
+            آکادمی تیزهوشان تارگت • آموزش عمیق و مفهومی
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function AboutSection() {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
@@ -378,10 +424,7 @@ export default function AboutSection() {
   }, [activeCardId]);
 
   const handleCardToggle = (teacherId: string) => {
-    setActiveCardId((currentId) => {
-      if (canHover) return teacherId;
-      return currentId === teacherId ? null : teacherId;
-    });
+    setActiveCardId((currentId) => (currentId === teacherId ? null : teacherId));
   };
 
   return (
@@ -393,13 +436,13 @@ export default function AboutSection() {
       className="relative z-10 mt-4 py-4 md:mt-6 md:py-8"
     >
       <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
-        {/* Header styled exactly like CourseList */}
+        {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="mb-4 md:mb-6"
+          className="mb-6 md:mb-8"
         >
           <h2 id="about-heading" className="flex flex-col items-start gap-1 text-right">
             <span
@@ -421,7 +464,7 @@ export default function AboutSection() {
           <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
         </motion.header>
 
-        {/* Teachers Grid - Mobile horizontal scroll, Desktop grid */}
+        {/* Teachers Grid */}
         <div
           role="region"
           aria-label="اساتید آکادمی تارگت"
@@ -429,7 +472,7 @@ export default function AboutSection() {
             -mx-3 flex gap-3 overflow-x-auto px-3 pb-4 pt-1
             snap-x snap-mandatory scrollbar-none
             sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:p-0
-            lg:grid-cols-3 lg:gap-5
+            lg:grid-cols-3 lg:gap-6
           "
           style={{
             WebkitOverflowScrolling: 'touch',
@@ -440,16 +483,13 @@ export default function AboutSection() {
             const isOpen = activeCardId === teacher.id;
 
             return (
-              <motion.li
+              <motion.div
                 key={teacher.id}
                 initial={{ opacity: 0, y: 16, scale: 0.985 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.42, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                className="
-                  group h-full shrink-0 snap-start list-none
-                  w-[88%] xs:w-[80%] sm:w-auto
-                "
+                className="group shrink-0 snap-start w-[88%] xs:w-[80%] sm:w-auto"
                 onMouseEnter={() => {
                   if (canHover) setActiveCardId(teacher.id);
                 }}
@@ -468,7 +508,7 @@ export default function AboutSection() {
                   canHover={canHover}
                   onToggle={() => handleCardToggle(teacher.id)}
                 />
-              </motion.li>
+              </motion.div>
             );
           })}
         </div>

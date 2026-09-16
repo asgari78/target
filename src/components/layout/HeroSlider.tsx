@@ -17,13 +17,13 @@ export interface Slide {
 const defaultSlides: Slide[] = [
   {
     id: 1,
-    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/course1Poster.webp',
-    alt: 'موسسه آموزشی تارگت - کلاس‌های حضوری',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/YZxZhWSzED8j4InHHF0c59CiF9s-mR4P7fBiSke6vWVUno6Q8w.jpg',
+    alt: 'موسسه آموزشی تارگت - کلاس‌های آنلاین',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },
   {
     id: 2,
-    image: '/images/slider/2.png',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/Personal_Mobile.png',
     alt: 'دوره جامع تیزهوشان ششم',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },
