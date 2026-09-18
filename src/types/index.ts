@@ -1,7 +1,7 @@
 export type PaymentMode = 'cash' | 'installment';
-export type RegistrationType = 'in_person' | 'online';
+export type RegistrationType = 'in_person' | 'online' | 'ofline';
 export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'failed';
-export type AttendanceMode = 'in_person' | 'online';
+export type AttendanceMode = 'in_person' | 'online' | 'ofline';
 
 export interface Course {
   id: string;
@@ -24,24 +24,29 @@ export interface Course {
   startDate: string | null;
   locationInPerson: string;
   locationOnline: string;
+  locationOfline: string;
   /** @deprecated Use courseOfferings for pricing */
   priceInPerson: number;
   /** @deprecated Use courseOfferings for pricing */
   priceOnline: number;
+  priceOfline: number;
   /** @deprecated Use courseOfferings for pricing */
   originalPriceInPerson: number | null;
   /** @deprecated Use courseOfferings for pricing */
   discountPercentInPerson: number;
   /** @deprecated Use courseOfferings for pricing */
   originalPriceOnline: number | null;
+  originalPriceOfline: number | null;
   /** @deprecated Use courseOfferings for pricing */
   discountPercentOnline: number;
+  discountPercentOfline: number;
   /** @deprecated Use courseOfferings for pricing */
   installmentsCount: number;
   /** @deprecated Use courseOfferings for pricing */
   installmentInterestPct: number;
   inPersonAvailable: boolean;
   onlineAvailable: boolean;
+  oflineAvailable: boolean;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -100,18 +105,23 @@ export interface CourseRow {
   start_date: string | null;
   location_in_person: string;
   location_online: string;
+  location_ofline: string;
   in_person_available: boolean;
   online_available: boolean;
+  ofline_available: boolean;
   is_active: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
   price_in_person: number;
   price_online: number;
+  price_ofline: number;
   original_price_in_person: number | null;
   discount_percent_in_person: number;
   original_price_online: number | null;
+  original_price_ofline: number | null;
   discount_percent_online: number;
+  discount_percent_ofline: number;
   installments_count: number;
   installment_interest_pct: number;
   session_duration: string | null;

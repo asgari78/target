@@ -20,20 +20,38 @@ export function formatDuration(hours: number): string {
 }
 
 /** @deprecated Use getOfferingForMode instead */
+
 export function getBasePrice(course: Course, type: RegistrationType): number {
-  return type === 'in_person' ? course.priceInPerson : course.priceOnline;
+  if (type === 'in_person') return course.priceInPerson;
+  if (type === 'online') return course.priceOnline;
+  return course.priceOfline;
 }
+
 
 /** @deprecated Use getOfferingForMode instead */
 export function getOriginalPrice(course: Course, type: RegistrationType): number {
-  const original = type === 'in_person' ? course.originalPriceInPerson : course.originalPriceOnline;
+  const original =
+    type === 'in_person'
+      ? course.originalPriceInPerson
+      : type === 'online'
+        ? course.originalPriceOnline
+        : course.originalPriceOfline;
+
   return original ?? getBasePrice(course, type);
 }
 
+
 /** @deprecated Use getOfferingForMode instead */
 export function getDiscountPercent(course: Course, type: RegistrationType): number {
-  return type === 'in_person' ? course.discountPercentInPerson : course.discountPercentOnline;
+  const discountByType: Record<RegistrationType, number> = {
+    in_person: course.discountPercentInPerson,
+    online: course.discountPercentOnline,
+    ofline: course.discountPercentOfline,
+  };
+
+  return discountByType[type];
 }
+
 
 /** @deprecated Use getOfferingForMode instead */
 export function getInstallmentMonths(course: Course): number {
@@ -56,15 +74,23 @@ export function calculateInstallmentPlan(
 }
 
 export function isModeAvailable(course: Course, type: RegistrationType): boolean {
-  return type === 'in_person' ? course.inPersonAvailable : course.onlineAvailable;
+  const availability: Record<RegistrationType, boolean> = {
+    in_person: course.inPersonAvailable,
+    online: course.onlineAvailable,
+    ofline: course.oflineAvailable,
+  };
+  return availability[type];
 }
+
 
 export function getAvailableModes(course: Course): RegistrationType[] {
   const modes: RegistrationType[] = [];
   if (course.inPersonAvailable) modes.push('in_person');
   if (course.onlineAvailable) modes.push('online');
+  if (course.oflineAvailable) modes.push('ofline');
   return modes;
 }
+
 
 export function getModeLabel(type: RegistrationType): string {
   return type === 'in_person' ? 'حضوری' : 'آنلاین';

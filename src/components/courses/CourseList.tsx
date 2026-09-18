@@ -8,7 +8,7 @@ import { Course } from '@/src/types';
 interface CourseListProps {
   courses: Course[];
   isLoading: boolean;
-  onRegisterClick: (course: Course, type: 'in_person' | 'online') => void;
+  onRegisterClick: (course: Course, type: 'in_person' | 'online' | 'ofline') => void;
 }
 
 export default function CourseList({ courses, isLoading, onRegisterClick }: CourseListProps) {

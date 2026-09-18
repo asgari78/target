@@ -2,21 +2,54 @@
 
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Monitor, CalendarClock, Users, Info, CreditCard, Tag, GraduationCap, BookOpen, Target, Shield, Clock } from 'lucide-react';
-import { Course } from '@/src/types';
-import { formatPrice, formatDuration, formatJalaliDate, calculateInstallmentPlan, getAvailableModes } from '@/src/lib/utils';
-import { cn } from '@/src/lib/utils';
-import type { PaymentMode } from '@/src/types';
+import {
+  MapPin,
+  Monitor,
+  Video,
+  CalendarClock,
+  Users,
+  Info,
+  CreditCard,
+  Tag,
+  GraduationCap,
+  BookOpen,
+  Target,
+  Shield,
+  Clock,
+} from 'lucide-react';
+import type { Course, RegistrationType, PaymentMode } from '@/src/types';
+import {
+  formatPrice,
+  formatDuration,
+  formatJalaliDate,
+  calculateInstallmentPlan,
+  getAvailableModes,
+  cn,
+} from '@/src/lib/utils';
 
 interface CourseDetailViewProps {
   course: Course;
-  selectedMode: 'in_person' | 'online';
-  onModeChange: (mode: 'in_person' | 'online') => void;
+  selectedMode: RegistrationType;
+  onModeChange: (mode: RegistrationType) => void;
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
 }
 
-const modeConfigs = {
+const modeConfigs: Record<
+  RegistrationType,
+  {
+    label: string;
+    icon: typeof MapPin;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    textColor: string;
+    hoverBg: string;
+    activeBg: string;
+    activeText: string;
+    gradient: string;
+  }
+> = {
   in_person: {
     label: 'حضوری',
     icon: MapPin,
@@ -41,9 +74,31 @@ const modeConfigs = {
     activeText: 'text-white',
     gradient: 'from-emerald-600 to-emerald-700',
   },
-} as const;
+  ofline: {
+    label: 'آفلاین (ضبط‌شده)',
+    icon: Video,
+    color: 'purple',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    textColor: 'text-purple-700',
+    hoverBg: 'hover:bg-purple-100',
+    activeBg: 'bg-purple-600',
+    activeText: 'text-white',
+    gradient: 'from-purple-600 to-purple-700',
+  },
+};
 
-function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { course: Course; mode: 'in_person' | 'online'; paymentMode: PaymentMode; onPaymentModeChange: (mode: PaymentMode) => void }) {
+function PricingBlock({
+  course,
+  mode,
+  paymentMode,
+  onPaymentModeChange,
+}: {
+  course: Course;
+  mode: RegistrationType;
+  paymentMode: PaymentMode;
+  onPaymentModeChange: (mode: PaymentMode) => void;
+}) {
   const config = modeConfigs[mode];
   const plan = calculateInstallmentPlan(course, mode, paymentMode);
   const originalPrice = plan.originalAmount;
@@ -133,7 +188,10 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
             className="space-y-3"
           >
             {/* Summary Card */}
-            <div className="rounded-2xl p-4 border" style={{ borderColor: config.borderColor, backgroundColor: config.bgColor }}>
+            <div
+              className="rounded-2xl p-4 border"
+              style={{ borderColor: config.borderColor, backgroundColor: config.bgColor }}
+            >
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex flex-col">
                   <p className="text-sm font-medium" style={{ color: config.textColor }}>
@@ -183,7 +241,12 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
                       item.isDownPayment ? 'bg-linear-to-r from-amber-50 to-white font-semibold' : ''
                     )}
                   >
-                    <span className={cn('flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold', item.isDownPayment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500')}>
+                    <span
+                      className={cn(
+                        'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                        item.isDownPayment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                      )}
+                    >
                       {item.index}
                     </span>
                     <div className="flex items-center gap-2 pr-4 text-right">
@@ -193,9 +256,13 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
                         </span>
                       )}
                       <span className="font-medium text-slate-700">{item.label}</span>
-                      <span className="text-[10px] text-slate-400 fa-nums hidden sm:inline">({formatJalaliDate(item.dueDate)})</span>
+                      <span className="text-[10px] text-slate-400 fa-nums hidden sm:inline">
+                        ({formatJalaliDate(item.dueDate)})
+                      </span>
                     </div>
-                    <span className="font-bold tabular-nums fa-nums text-slate-900">{formatPrice(item.amount)}</span>
+                    <span className="font-bold tabular-nums fa-nums text-slate-900">
+                      {formatPrice(item.amount)}
+                    </span>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -207,9 +274,16 @@ function PricingBlock({ course, mode, paymentMode, onPaymentModeChange }: { cour
   );
 }
 
-function InfoSection({ course, mode }: { course: Course; mode: 'in_person' | 'online' }) {
+function InfoSection({ course, mode }: { course: Course; mode: RegistrationType }) {
   const config = modeConfigs[mode];
-  const location = mode === 'in_person' ? course.locationInPerson : course.locationOnline;
+
+  const location =
+    mode === 'in_person'
+      ? course.locationInPerson
+      : mode === 'online'
+        ? course.locationOnline
+        : course.locationOfline;
+
   const schedule = course.scheduleText;
   const sessions = course.sessionsCount;
   const sessionHours = course.sessionHours;
@@ -253,22 +327,29 @@ function InfoSection({ course, mode }: { course: Course; mode: 'in_person' | 'on
       </div>
 
       {/* Location & Schedule */}
-      <div className="rounded-2xl p-4" style={{ backgroundColor: config.bgColor, borderColor: config.borderColor }}>
+      <div
+        className="rounded-2xl p-4 border"
+        style={{ backgroundColor: config.bgColor, borderColor: config.borderColor }}
+      >
         <div className="flex items-center gap-2 mb-3">
           {(() => {
-            const IconComponent = modeConfigs[mode].icon;
+            const IconComponent = config.icon;
             return <IconComponent className="h-5 w-5" style={{ color: config.textColor }} />;
           })()}
           <h4 className="font-semibold text-slate-900">مکان و زمان‌بندی</h4>
         </div>
         <div className="space-y-3 text-sm text-slate-600">
           <div className="flex items-start gap-3">
-            <MapPin className="h-5 w-5 shrink-0 mt-0.5" style={{ color: config.textColor }} />
-            <span><strong>مکان:</strong> {location}</span>
+            <config.icon className="h-5 w-5 shrink-0 mt-0.5" style={{ color: config.textColor }} />
+            <span>
+              <strong>بستر / محل برگزاری:</strong> {location || 'ثبت‌نشده'}
+            </span>
           </div>
           <div className="flex items-start gap-3">
             <CalendarClock className="h-5 w-5 shrink-0 mt-0.5" style={{ color: config.textColor }} />
-            <span><strong>برنامه:</strong> {schedule}</span>
+            <span>
+              <strong>برنامه:</strong> {schedule}
+            </span>
           </div>
         </div>
       </div>
@@ -353,7 +434,7 @@ function InfoSection({ course, mode }: { course: Course; mode: 'in_person' | 'on
         </motion.div>
       )}
 
-      {/* Venue Details & Map */}
+      {/* Venue Details & Map (only for in_person) */}
       {(course.venueDetails || course.mapEmbedUrl) && mode === 'in_person' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -399,6 +480,8 @@ export default function CourseDetailView({
 }: CourseDetailViewProps) {
   const availableModes = getAvailableModes(course);
   const showTabs = availableModes.length > 1;
+  const selectedConfig = modeConfigs[selectedMode];
+  const SelectedIcon = selectedConfig?.icon ?? Monitor;
 
   return (
     <div className="space-y-5" dir="rtl">
@@ -420,17 +503,8 @@ export default function CourseDetailView({
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur">
-              {selectedMode === 'in_person' ? (
-                <>
-                  <MapPin className="h-3 w-3" />
-                  حضوری
-                </>
-              ) : (
-                <>
-                  <Monitor className="h-3 w-3" />
-                  آنلاین
-                </>
-              )}
+              <SelectedIcon className="h-3 w-3" />
+              {selectedConfig?.label}
             </span>
           </div>
         </motion.div>
@@ -443,7 +517,10 @@ export default function CourseDetailView({
         transition={{ delay: 0.1 }}
         className="space-y-2"
       >
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight" style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}>
+        <h2
+          className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight"
+          style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
+        >
           {course.title}
         </h2>
         <div className="flex flex-wrap items-center gap-3">
@@ -476,19 +553,21 @@ export default function CourseDetailView({
           {availableModes.map((mode) => {
             const config = modeConfigs[mode];
             const isSelected = selectedMode === mode;
+            const Icon = config.icon;
+
             return (
               <button
                 key={mode}
+                type="button"
                 onClick={() => onModeChange(mode)}
                 className={cn(
                   'relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300',
                   isSelected
-                    ? `${config.activeText} shadow-lg`
-                    : `${config.textColor} ${config.hoverBg}`,
-                  isSelected && `bg-linear-to-br ${config.gradient}`,
+                    ? `${config.activeText} shadow-lg bg-linear-to-br ${config.gradient}`
+                    : `${config.textColor} ${config.hoverBg}`
                 )}
               >
-                <config.icon className="h-4 w-4" aria-hidden="true" />
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 {config.label}
               </button>
             );

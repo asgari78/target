@@ -7,7 +7,7 @@ interface CreateReservationRequest {
   courseId: string;
   studentName: string;
   phoneNumber: string;
-  registrationType: 'in_person' | 'online';
+  registrationType: 'in_person' | 'online' | 'ofline';
 }
 
 export async function POST(request: NextRequest) {
@@ -31,10 +31,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    // Check mode availability
-    const modeAvailable = body.registrationType === 'in_person'
-      ? course.in_person_available
-      : course.online_available;
+    const setMode = ()=>{
+      if(body.registrationType === 'in_person'){
+        return course.in_person_available
+      }else if(body.registrationType === 'online'){
+        return course.online_available;
+      }else{
+        return course.ofline_available;
+      }
+    }
+    const modeAvailable = setMode()
 
     if (!modeAvailable) {
       return NextResponse.json({ error: 'This mode is not available for this course' }, { status: 400 });

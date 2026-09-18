@@ -1,31 +1,43 @@
 import { z } from 'zod';
 
-/** Accepts 09xxxxxxxxx and +989xxxxxxxxx (Iranian mobile formats). */
-export const iranianMobileRegex = /^(?:\+98|09)9\d{8}$/;
+/**
+ * تبدیل ارقام فارسی و عربی به انگلیسی
+ */
+export function toEnglishDigits(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[۰-۹]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 1728))
+    .replace(/[٠-٩]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 1584));
+}
 
-/** Normalizes +98xxxxxxxxxx to 09xxxxxxxxxx. */
+/** پاکسازی فاصله‌ها، خط تیره‌ها و تبدیل به ارقام انگلیسی */
 export function normalizeMobile(value: string): string {
-  const trimmed = value.replace(/[\s-]/g, '');
-  if (/^\+989\d{8}$/.test(trimmed)) return '0' + trimmed.slice(3);
-  return trimmed;
+  if (!value) return '';
+  return toEnglishDigits(value).replace(/[\s-]/g, '').trim();
 }
 
 /** Schema for the simplified registration form (name + phone only). */
 export const registrationSchema = z.object({
   studentName: z
-    .string()
+    .string({ required_error: 'وارد کردن نام الزامی است.' })
     .trim()
     .min(2, { message: 'نام کامل حداقل ۲ کاراکتر است.' })
     .max(120, { message: 'نام کامل حداکثر ۱۲۰ کاراکتر است.' }),
 
   phoneNumber: z
-    .string()
+    .string({ required_error: 'وارد کردن شماره موبایل الزامی است.' })
     .trim()
     .min(1, { message: 'وارد کردن شماره موبایل الزامی است.' })
-    .regex(iranianMobileRegex, {
-      message: 'شماره موبایل معتبر نیست (مثال: 09123456789 یا +989123456789).',
-    })
-    .transform(normalizeMobile),
+    .refine(
+      (val) => {
+        const cleaned = normalizeMobile(val);
+        // فقط دو شرط: با 09 شروع شود و دقیقا ۱۱ رقم باشد
+        return /^09\d{9}$/.test(cleaned);
+      },
+      {
+        message: 'شماره موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود.',
+      }
+    ),
 
   paymentMode: z.enum(['cash', 'installment']).optional(),
 });
@@ -35,7 +47,7 @@ export type RegistrationFormValues = z.infer<typeof registrationSchema>;
 /** Schema for order creation API (includes paymentMode as required). */
 export const createOrderSchema = registrationSchema.extend({
   courseId: z.string().uuid({ message: 'شناسه دوره نامعتبر است.' }),
-  registrationType: z.enum(['in_person', 'online'], {
+  registrationType: z.enum(['in_person', 'online', 'ofline'], {
     required_error: 'لطفاً نوع برگزاری را انتخاب کنید.',
     invalid_type_error: 'نوع برگزاری نامعتبر است.',
   }),
@@ -50,7 +62,7 @@ export type CreateOrderValues = z.infer<typeof createOrderSchema>;
 /** Schema for reservation API. */
 export const createReservationSchema = registrationSchema.extend({
   courseId: z.string().uuid({ message: 'شناسه دوره نامعتبر است.' }),
-  registrationType: z.enum(['in_person', 'online'], {
+  registrationType: z.enum(['in_person', 'online', 'ofline'], {
     required_error: 'لطفاً نوع برگزاری را انتخاب کنید.',
     invalid_type_error: 'نوع برگزاری نامعتبر است.',
   }),

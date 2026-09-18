@@ -110,37 +110,6 @@ export default function RegistrationForm({
 
   return (
     <form onSubmit={handleSubmit(variant === 'payment' ? onSubmitPayment : onSubmitConsultation)} className="space-y-4" dir="rtl" noValidate>
-      {/* Payment Summary Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-4 border border-slate-200 bg-linear-to-br from-slate-50 to-white"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-600 truncate">
-              {course.title} ({modeLabel})
-            </p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {isInstallment
-                ? `پیش‌پرداخت: ${formatPrice(payableAmount)} تومان (از ${offering?.installmentsCount ?? 0} قسط)`
-                : `مبلغ قابل پرداخت: ${formatPrice(payableAmount)} تومان`}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            {pricing && pricing.discountPercent > 0 && pricing.originalAmount && pricing.originalAmount > pricing.baseAmount && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
-                {pricing.discountPercent}٪ تخفیف
-              </span>
-            )}
-            <span className="text-xl font-extrabold text-slate-900 fa-nums">
-              {formatPrice(payableAmount)}
-            </span>
-            <span className="text-xs text-slate-500">تومان</span>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Name Input */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}

@@ -10,7 +10,7 @@ interface CreateOrderRequest {
   courseId: string;
   studentName: string;
   phoneNumber: string;
-  registrationType: 'in_person' | 'online';
+  registrationType: 'in_person' | 'online' | 'ofline';
   paymentMode: 'cash' | 'installment';
 }
 
@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Normalize phone number
+    // Normalize phone number (تبدیل به ارقام انگلیسی و حذف فاصله‌ها)
     const normalizedPhone = normalizeMobile(body.phoneNumber);
 
-    // Validate phone format
-    const iranianMobileRegex = /^(?:09)9\d{8}$/;
+    // اعتبارسنجی فقط دو شرط: شروع با 09 و مجموعاً ۱۱ رقم
+    const iranianMobileRegex = /^09\d{9}$/;
     if (!iranianMobileRegex.test(normalizedPhone)) {
       return NextResponse.json({ error: 'شماره موبایل معتبر نیست' }, { status: 400 });
     }
@@ -153,7 +153,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Real mode: Request payment from Zarinpal
-    const description = `ثبت‌نام در ${courseData.title} (${body.registrationType === 'in_person' ? 'حضوری' : 'آنلاین'})`;
+    const modeLabel = body.registrationType === 'in_person' 
+      ? 'حضوری' 
+      : body.registrationType === 'online' 
+      ? 'آنلاین' 
+      : 'آفلاین';
+    const description = `ثبت‌نام در ${courseData.title} (${modeLabel})`;
     const callbackUrl = `/api/payments/zarinpal/callback?orderId=${order.id}`;
 
     // Zarinpal expects amount in Rials (1 Toman = 10 Rials)

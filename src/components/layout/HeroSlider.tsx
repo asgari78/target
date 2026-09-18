@@ -23,7 +23,7 @@ const defaultSlides: Slide[] = [
   },
   {
     id: 2,
-    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/Personal_Mobile.png',
+    image: 'https://gutcdmaqciskdrecukkj.supabase.co/storage/v1/object/public/slider/Personal_Mobile.jpg',
     alt: 'دوره جامع تیزهوشان ششم',
     overlayClassName: 'from-black/10 via-transparent to-black/10',
   },

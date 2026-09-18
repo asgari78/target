@@ -1,33 +1,96 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
-import Image from 'next/image';
 import {
-  X,
-  CheckCircle2,
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import {
   AlertCircle,
-  Loader2,
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
   CreditCard,
-  RotateCcw,
+  Loader2,
   MapPinned,
+  MessageCircle,
   Monitor,
-  ArrowLeft,
+  RotateCcw,
+  X,
 } from 'lucide-react';
 
-import RegistrationForm from './RegistrationForm';
-import { cn, formatPrice, getModeIcon, getOfferingForMode, isOfferingAvailable, calculatePricingFromOffering, getFirstInstallmentAmount, getInstallmentItemsForDisplay } from '@/src/lib/utils';
+import {
+  calculatePricingFromOffering,
+  cn,
+  formatPrice,
+  getFirstInstallmentAmount,
+  getInstallmentItemsForDisplay,
+  getOfferingForMode,
+  isOfferingAvailable,
+} from '@/src/lib/utils';
+
 import type {
   Course,
-  PaymentMode,
-  RegistrationType,
-  PaymentResult,
   ModalPaymentState,
+  PaymentMode,
+  PaymentResult,
+  RegistrationType,
 } from '@/src/types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
+const RegistrationForm = dynamic(() => import('./RegistrationForm'), {
+  loading: () => (
+    <div
+      className="flex min-h-64 items-center justify-center gap-2 text-sm text-slate-500"
+      role="status"
+    >
+      <Loader2
+        className="size-5 animate-spin motion-reduce:animate-none"
+        aria-hidden="true"
+      />
+      در حال آماده‌سازی فرم…
+    </div>
+  ),
+});
+
+const CourseDescription = dynamic(
+  async () => {
+    const [{ default: ReactMarkdown }, { default: remarkGfm }] =
+      await Promise.all([import('react-markdown'), import('remark-gfm')]);
+
+    function Description({ children }: { children: string }) {
+      return (
+        <article
+          className={cn(
+            'prose prose-sm prose-slate max-w-none break-words text-right',
+            'prose-headings:font-bold prose-headings:text-slate-900',
+            'prose-p:leading-8 prose-li:leading-7',
+            'prose-a:text-indigo-600 prose-img:rounded-xl',
+            '[&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto',
+          )}
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+        </article>
+      );
+    }
+
+    return Description;
+  },
+  {
+    loading: () => (
+      <p className="py-3 text-sm text-slate-500" role="status">
+        در حال نمایش توضیحات…
+      </p>
+    ),
+  },
+);
 
 interface RegistrationModalProps {
   course: Course | null;
@@ -35,987 +98,1235 @@ interface RegistrationModalProps {
   onClose: () => void;
 }
 
-type FormVariant = 'payment' | 'consultation' | null;
-type ViewState = 'detail' | 'form' | 'result';
+interface ModalContentProps extends Omit<RegistrationModalProps, 'course'> {
+  course: Course;
+}
+
+type FormVariant = 'payment' | 'consultation';
 type ModalStep = 'detail' | 'form-payment' | 'form-consultation' | 'result';
 
-function ModalContent({ course, onClose }: RegistrationModalProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
-  const isMountedRef = useRef(false);
+type ConsultationPayload = {
+  studentName: string;
+  phoneNumber: string;
+  courseId: string;
+  registrationType: RegistrationType;
+};
 
-  // Hash-based history management for modal
-  const getModalHash = useCallback((step: ModalStep, courseId: string) => {
-    return `#modal=${courseId}&step=${step}`;
-  }, []);
+type PaymentPayload = ConsultationPayload & {
+  paymentMode: PaymentMode;
+};
 
-  const parseModalHash = useCallback(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith('#modal=')) return null;
-    const params = new URLSearchParams(hash.slice(1).replace('modal=', ''));
-    return {
-      courseId: params.get('modal')?.split('&')[0] || params.get('courseId') || '',
-      step: (params.get('step') as ModalStep) || 'detail',
-    };
-  }, []);
+type ApiResponse = {
+  error?: string;
+  orderId?: string;
+  consultationId?: string;
+  payUrl?: string;
+  mockMode?: boolean;
+  isTest?: boolean;
+};
 
-  const updateHash = useCallback((step: ModalStep) => {
-    if (!course) return;
-    const hash = getModalHash(step, course.id);
-    if (window.location.hash !== hash) {
-      history.pushState(null, '', hash);
-    }
-  }, [course, getModalHash]);
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'summary',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
 
-  const clearHash = useCallback(() => {
-    if (window.location.hash.startsWith('#modal=')) {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-  }, []);
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2';
 
-const availableModes = useMemo(() => {
-  if (!course) return [] as RegistrationType[];
+const primaryButton = cn(
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl',
+  'bg-indigo-600 px-4 py-3 text-sm font-semibold text-white',
+  'transition-colors hover:bg-indigo-700',
+  'disabled:cursor-not-allowed disabled:opacity-45',
+  focusRing,
+);
 
-  // ۱. اگر courseOfferings وجود داشت و حداقل یک مورد فعال داشت
-  if (course.courseOfferings && course.courseOfferings.length > 0) {
-    const activeOfferings = course.courseOfferings
-      .filter((o) => o.isAvailable)
-      .map((o) => o.attendanceMode) as RegistrationType[];
+const secondaryButton = cn(
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl',
+  'border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700',
+  'transition-colors hover:bg-slate-50',
+  'disabled:cursor-not-allowed disabled:opacity-45',
+  focusRing,
+);
 
-    if (activeOfferings.length > 0) {
-      return Array.from(new Set(activeOfferings)); // حذف موارد تکراری
-    }
+function getAvailableModes(course: Course): RegistrationType[] {
+  if (course.courseOfferings?.length) {
+    const active = course.courseOfferings.filter((item) => item.isAvailable);
+    const source = active.length ? active : course.courseOfferings;
+
+    return Array.from(
+      new Set(source.map((item) => item.attendanceMode as RegistrationType)),
+    );
   }
 
-  // ۲. بررسی فیلدهای مستقیم دوره (پشتیبانی همزمان از camelCase و snake_case)
-  const isOnline =
-    course.onlineAvailable ??
-    (course as unknown as Record<string, unknown>).online_available ??
-    false;
-
-  const isInPerson =
-    course.inPersonAvailable ??
-    (course as unknown as Record<string, unknown>).in_person_available ??
-    false;
-
+  const legacy = course as unknown as Record<string, unknown>;
   const modes: RegistrationType[] = [];
-  if (isOnline) modes.push('online');
-  if (isInPerson) modes.push('in_person');
 
-  // اگر هیچ‌کدام true نبودند، به‌صورت پیش‌فرض فقط آنلاین نشان داده شود
-  return modes.length > 0 ? modes : (['online'] as RegistrationType[]);
-}, [course]);
+  if ((course as any).inPersonAvailable ?? legacy.in_person_available ?? false) {
+    modes.push('in_person');
+  }
+
+  if ((course as any).onlineAvailable ?? legacy.online_available ?? false) {
+    modes.push('online');
+  }
+
+  if ((course as any).oflineAvailable ?? legacy.ofline_available ?? false) {
+    modes.push('ofline');
+  }
+
+  return modes.length ? modes : ['online'];
+}
 
 
+function getModeLabel(mode: RegistrationType): string {
+  const labels: Record<RegistrationType, string> = {
+    in_person: 'حضوری',
+    online: 'آنلاین',
+    ofline: 'آفلاین (ضبط‌شده)',
+  };
+
+  return labels[mode] ?? 'نامشخص';
+}
+
+
+function parseModalHash() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const courseId = params.get('modal');
+  if (!courseId) return null;
+
+  const value = params.get('step');
+  const step: ModalStep =
+    value === 'form-payment' ||
+    value === 'form-consultation' ||
+    value === 'result'
+      ? value
+      : 'detail';
+
+  return { courseId, step };
+}
+
+function getPaymentCallback(): PaymentResult | null {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('payment_result');
+
+  if (status !== 'success' && status !== 'failed' && status !== 'cancelled') {
+    return null;
+  }
+
+  return {
+    status,
+    orderId: params.get('orderId') || undefined,
+    error: params.get('error') || undefined,
+  };
+}
+
+async function postJson(
+  url: string,
+  data: ConsultationPayload | PaymentPayload,
+  signal: AbortSignal,
+): Promise<ApiResponse> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal,
+  });
+
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('پاسخ سرور معتبر نیست. لطفاً دوباره تلاش کنید.');
+  }
+
+  const result = body as ApiResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      typeof result.error === 'string'
+        ? result.error
+        : 'ثبت درخواست انجام نشد. لطفاً دوباره تلاش کنید.',
+    );
+  }
+
+  return result;
+}
+
+const CoursePoster = memo(function CoursePoster({
+  src,
+  title,
+}: {
+  src: string;
+  title: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="flex aspect-square items-center justify-center rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500">
+        تصویر دوره در دسترس نیست.
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative mx-auto aspect-square w-full max-w-80 overflow-hidden rounded-2xl border border-slate-100 bg-white">
+      <Image
+        src={src}
+        alt={`پوستر ${title}`}
+        fill
+        sizes="(max-width: 639px) 320px, (max-width: 767px) 44vw, 352px"
+        className="object-contain"
+        loading="eager"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+});
+
+function ModalContent({ course, registrationType, onClose }: ModalContentProps) {
+  const reducedMotion = useReducedMotion();
+  const titleId = useId();
+  const attendanceName = useId();
+  const paymentName = useId();
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
+  const busyRef = useRef(false);
+  const closingRef = useRef(false);
+  const requestRef = useRef<AbortController | null>(null);
+  const originalHashRef = useRef('');
+  const onCloseRef = useRef(onClose);
+
+  onCloseRef.current = onClose;
+
+  const availableModes = useMemo(() => getAvailableModes(course), [course]);
 
 const [selectedMode, setSelectedMode] = useState<RegistrationType>(() => {
-  return availableModes[0] || 'online';
+  // ۱. اگر مقدار درخواستی در مودهای معتبر دوره بود
+  if (availableModes.includes(registrationType)) {
+    return registrationType;
+  }
+
+  // ۲. اولویت‌بندی برای انتخاب پیش‌فرض: حضوری، سپس آنلاین، سپس آفلاین
+  const preferredOrder: RegistrationType[] = ['in_person', 'online', 'ofline'];
+  const defaultMode = preferredOrder.find((mode) => availableModes.includes(mode));
+
+  return defaultMode ?? availableModes[0] ?? 'online';
 });
+
+
+  const [callbackResult] = useState(getPaymentCallback);
+
+  const [step, setStep] = useState<ModalStep>(() => {
+    if (callbackResult) return 'result';
+    const hash = parseModalHash();
+
+    if (hash?.courseId === String(course.id) && hash.step !== 'result') {
+      return hash.step;
+    }
+    return 'detail';
+  });
+
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
-  const [paymentState, setPaymentState] = useState<ModalPaymentState>({ mode: 'idle' });
-  const [formVariant, setFormVariant] = useState<FormVariant>(null);
-  const [lastSubmittedVariant, setLastSubmittedVariant] = useState<FormVariant>(null);
-  const [viewState, setViewState] = useState<ViewState>('detail');
+  const [paymentState, setPaymentState] = useState<ModalPaymentState>(() =>
+    callbackResult ? { mode: 'result', result: callbackResult } : { mode: 'idle' },
+  );
+  const [lastSubmittedVariant, setLastSubmittedVariant] =
+    useState<FormVariant>('payment');
   const [formError, setFormError] = useState<string | null>(null);
   const [isFormLoading, setIsFormLoading] = useState(false);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
 
-  const currentOffering = useMemo(() => {
-    if (!course) return null;
-    return getOfferingForMode(course, selectedMode);
-  }, [course, selectedMode]);
+  const currentOffering = useMemo(
+    () => getOfferingForMode(course, selectedMode),
+    [course, selectedMode],
+  );
 
-  const offeringAvailable = isOfferingAvailable(currentOffering);
+  const offeringAvailable = !!currentOffering && isOfferingAvailable(currentOffering);
+  const supportsInstallments =
+    !!currentOffering && Number(currentOffering.installmentsCount || 0) > 0;
 
-  const pricing = useMemo(() => {
-    if (!currentOffering) return null;
-    return calculatePricingFromOffering(currentOffering, paymentMode);
-  }, [currentOffering, paymentMode]);
+  const pricing = useMemo(
+    () =>
+      currentOffering
+        ? calculatePricingFromOffering(currentOffering, paymentMode)
+        : null,
+    [currentOffering, paymentMode],
+  );
 
-  const firstInstallmentAmount = useMemo(() => {
-    if (!currentOffering || paymentMode !== 'installment') return null;
-    return getFirstInstallmentAmount(currentOffering);
-  }, [currentOffering, paymentMode]);
+  const firstInstallmentAmount = useMemo(
+    () =>
+      currentOffering && paymentMode === 'installment'
+        ? getFirstInstallmentAmount(currentOffering)
+        : null,
+    [currentOffering, paymentMode],
+  );
 
-  const installmentItems = useMemo(() => {
-    if (!currentOffering || paymentMode !== 'installment') return [];
-    return getInstallmentItemsForDisplay(currentOffering);
-  }, [currentOffering, paymentMode]);
+  const installmentItems = useMemo(
+    () =>
+      currentOffering && paymentMode === 'installment'
+        ? getInstallmentItemsForDisplay(currentOffering)
+        : [],
+    [currentOffering, paymentMode],
+  );
 
-  const theme = useMemo(() => {
-    const isInPerson = selectedMode === 'in_person';
-    return isInPerson
-      ? {
-          accent: 'indigo',
-          tabActive: 'bg-indigo-600 text-white shadow-indigo-200',
-          tabInactive: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
-          badge: 'bg-indigo-100 text-indigo-700',
-          primaryGradient: 'from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800',
-          primaryShadow: 'shadow-indigo-200/40',
-          pricingGradient: 'from-indigo-600 via-indigo-700 to-indigo-800',
-        }
-      : {
-          accent: 'emerald',
-          tabActive: 'bg-emerald-600 text-white shadow-emerald-200',
-          tabInactive: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
-          badge: 'bg-emerald-100 text-emerald-700',
-          primaryGradient: 'from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800',
-          primaryShadow: 'shadow-emerald-200/40',
-          pricingGradient: 'from-emerald-600 via-emerald-700 to-emerald-800',
-        };
-  }, [selectedMode]);
+  const result = paymentState.mode === 'result' ? paymentState.result : null;
+  const isResult = step === 'result' && !!result;
+  const isForm = step === 'form-payment' || step === 'form-consultation';
+  const formVariant: FormVariant =
+    step === 'form-consultation' ? 'consultation' : 'payment';
 
-  // Handle payment result from URL params
-  useEffect(() => {
-    const result = searchParams.get('payment_result');
-    if (!result) return;
+  const isBusy =
+    isFormLoading ||
+    paymentState.mode === 'initiating' ||
+    paymentState.mode === 'redirecting';
 
-    const orderId = searchParams.get('orderId');
-    const paymentResult: PaymentResult = {
-      status: result as PaymentResult['status'],
-      orderId: orderId || undefined,
-      error: searchParams.get('error') || undefined,
-    };
+  const amountDue =
+    paymentMode === 'installment'
+      ? firstInstallmentAmount
+      : pricing?.baseAmount ?? null;
 
-    setTimeout(() => {
-      setLastSubmittedVariant('payment');
-      setPaymentState({ mode: 'result', result: paymentResult });
-      setViewState('result');
-    }, 0);
+  const canPay =
+    offeringAvailable &&
+    !!pricing &&
+    amountDue !== null &&
+    Number.isFinite(amountDue) &&
+    amountDue >= 0 &&
+    (paymentMode !== 'installment' || pricing.installments.length > 0);
 
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete('payment_result');
-    newUrl.searchParams.delete('orderId');
-    newUrl.searchParams.delete('error');
-    router.replace(newUrl.toString(), { scroll: false });
-  }, [searchParams, router]);
+  const clearOwnHash = useCallback(() => {
+    if (parseModalHash()?.courseId !== String(course.id)) return;
 
-  // Reset state when course changes
-useEffect(() => {
-  if (!course) return;
+    const url = new URL(window.location.href);
+    url.hash = originalHashRef.current;
+    window.history.replaceState(window.history.state, '', url);
+  }, [course.id]);
 
-  const initialMode = availableModes[0] || 'online';
+  const writeStep = useCallback(
+    (nextStep: ModalStep, replace = false) => {
+      const url = new URL(window.location.href);
+      url.hash = new URLSearchParams({
+        modal: String(course.id),
+        step: nextStep,
+      }).toString();
 
-  const timer = setTimeout(() => {
-    setSelectedMode(initialMode);
-    setPaymentMode('cash');
-    setFormError(null);
-    setPaymentState({ mode: 'idle' });
-    setViewState('detail');
-    setFormVariant(null);
-    setLastSubmittedVariant(null);
-    previousActiveElement.current = document.activeElement as HTMLElement;
-  }, 0);
+      if (url.href === window.location.href) return;
 
-  return () => clearTimeout(timer);
-}, [course, availableModes]);
+      if (replace) {
+        window.history.replaceState(window.history.state, '', url);
+      } else {
+        window.history.pushState(window.history.state, '', url);
+      }
+    },
+    [course.id],
+  );
 
+  const navigate = useCallback(
+    (nextStep: ModalStep, replace = false) => {
+      if (busyRef.current || closingRef.current) return;
+      setFormError(null);
+      setStep(nextStep);
+      writeStep(nextStep, replace);
+    },
+    [writeStep],
+  );
 
-  // Prevent body scroll when modal is open, save/restore scroll position
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
-    return () => {
-      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10));
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
-
-  // Restore focus on close
-  const restoreFocus = useCallback(() => {
-    if (previousActiveElement.current) {
-      previousActiveElement.current.focus();
-    }
-  }, []);
-
-  // Define handlers before useEffect that uses them
   const handleClose = useCallback(() => {
-    if (paymentState.mode === 'redirecting') return;
-    clearHash();
-    restoreFocus();
-    onClose();
-  }, [onClose, paymentState.mode, restoreFocus, clearHash]);
+    if (busyRef.current || closingRef.current) return;
+    closingRef.current = true;
+    clearOwnHash();
+    onCloseRef.current();
+  }, [clearOwnHash]);
 
-  const handleBackToDetail = useCallback(() => {
-    setViewState('detail');
-    setFormVariant(null);
-    setFormError(null);
-    // Hash will be updated by the effect that watches viewState/formVariant
-  }, []);
+  const handleBack = useCallback(() => {
+    if (busyRef.current) return;
+    if (result) {
+      navigate('detail', true);
+      return;
+    }
+    navigate('detail');
+  }, [navigate, result]);
 
-  const handleRetry = useCallback(() => {
-    setPaymentState({ mode: 'idle' });
-    setFormError(null);
-    setViewState('detail');
-  }, []);
+  const changePaymentMode = useCallback(
+    (mode: PaymentMode) => {
+      if (busyRef.current) return;
+      if (mode === 'installment' && !supportsInstallments) return;
 
-  const handlePaymentSuccess = useCallback(() => {
-    clearHash();
-    restoreFocus();
-    onClose();
-  }, [onClose, restoreFocus, clearHash]);
+      setPaymentMode(mode);
+      setFormError(null);
+    },
+    [supportsInstallments],
+  );
 
-  const openPaymentForm = useCallback(() => {
-    setFormVariant('payment');
-    setViewState('form');
-  }, []);
-
-  const openConsultationForm = useCallback(() => {
-    setFormVariant('consultation');
-    setViewState('form');
-  }, []);
-
-  // Handle browser back/forward navigation
   useEffect(() => {
-    const handleHashChange = () => {
-      const parsed = parseModalHash();
-      if (!parsed || parsed.courseId !== course?.id) {
-        // Modal hash removed or different course - close modal
-        if (isMountedRef.current) {
-          handleClose();
-        }
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      requestRef.current?.abort();
+    };
+  }, []);
+
+  const stepRef = useRef(step);
+  const resultRef = useRef(result);
+  stepRef.current = step;
+  resultRef.current = result;
+
+  useEffect(() => {
+    const previousHash = window.location.hash;
+    const parsed = parseModalHash();
+    originalHashRef.current = parsed ? '' : previousHash;
+
+    if (callbackResult) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('payment_result');
+      url.searchParams.delete('orderId');
+      url.searchParams.delete('error');
+      window.history.replaceState(window.history.state, '', url);
+    }
+
+    writeStep(stepRef.current, !!parsed || !!callbackResult);
+
+    const handleHistoryChange = () => {
+      if (closingRef.current) return;
+
+      if (busyRef.current) {
+        writeStep(stepRef.current, true);
         return;
       }
-      // Internal step navigation
-      switch (parsed.step) {
-        case 'detail':
-          handleBackToDetail();
-          break;
-        case 'form-payment':
-          if (viewState !== 'form' || formVariant !== 'payment') {
-            openPaymentForm();
-          }
-          break;
-        case 'form-consultation':
-          if (viewState !== 'form' || formVariant !== 'consultation') {
-            openConsultationForm();
-          }
-          break;
-        case 'result':
-          // Result state is handled by paymentState
-          break;
+
+      const next = parseModalHash();
+
+      if (!next || next.courseId !== String(course.id)) {
+        closingRef.current = true;
+        onCloseRef.current();
+        return;
       }
+
+      const nextStep =
+        resultRef.current && next.step === 'result' ? 'result' : next.step;
+
+      setFormError(null);
+      setStep(nextStep);
+
+      if (nextStep !== next.step) writeStep(nextStep, true);
     };
 
-    const handlePopState = () => {
-      handleHashChange();
-    };
+    window.addEventListener('popstate', handleHistoryChange);
+    window.addEventListener('hashchange', handleHistoryChange);
 
-    window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('popstate', handlePopState);
     return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('popstate', handleHistoryChange);
+      window.removeEventListener('hashchange', handleHistoryChange);
+      clearOwnHash();
     };
-  }, [course?.id, viewState, formVariant, handleBackToDetail, openPaymentForm, openConsultationForm, handleClose, parseModalHash]);
+  }, [callbackResult, clearOwnHash, course.id, writeStep]);
 
-  // Update hash when internal state changes
-  useEffect(() => {
-    if (!course || !isMountedRef.current) return;
-    if (viewState === 'detail') {
-      updateHash('detail');
-    } else if (viewState === 'form' && formVariant === 'payment') {
-      updateHash('form-payment');
-    } else if (viewState === 'form' && formVariant === 'consultation') {
-      updateHash('form-consultation');
-    } else if (paymentState.mode === 'result' || viewState === 'result') {
-      updateHash('result');
-    }
-  }, [viewState, formVariant, paymentState.mode, course, updateHash]);
-
-  // Initialize hash on mount, clear on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    if (course) {
-      const parsed = parseModalHash();
-      if (!parsed || parsed.courseId !== course.id) {
-        updateHash('detail');
-      }
-    }
-    return () => {
-      isMountedRef.current = false;
-      clearHash();
-    };
-  }, [course, parseModalHash, updateHash, clearHash]);
-
-  // Focus management for accessibility - must be after handler definitions
   useEffect(() => {
     const modal = modalRef.current;
     if (!modal) return;
 
-    // Trap focus within modal
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (viewState === 'form' || paymentState.mode === 'initiating') {
-          e.preventDefault();
-          handleBackToDetail();
-        } else if (paymentState.mode !== 'redirecting') {
-          e.preventDefault();
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const body = document.body;
+    const root = document.documentElement;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const scrollbarWidth = window.innerWidth - root.clientWidth;
+
+    const previousStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      width: body.style.width,
+      paddingRight: body.style.paddingRight,
+    };
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${
+        parseFloat(window.getComputedStyle(body).paddingRight || '0') +
+        scrollbarWidth
+      }px`;
+    }
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = `-${scrollX}px`;
+    body.style.width = '100%';
+
+    const overlay = modal.parentElement;
+    const siblings = Array.from(body.children).filter(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement &&
+        element !== overlay &&
+        !(overlay && element.contains(overlay)),
+    );
+
+    const inertStates = siblings.map((element) => ({
+      element,
+      inert: (element as any).inert ?? false,
+    }));
+
+    inertStates.forEach(({ element }) => {
+      (element as any).inert = true;
+    });
+
+    modal.focus({ preventScroll: true });
+
+    return () => {
+      Object.assign(body.style, previousStyles);
+
+      inertStates.forEach(({ element, inert }) => {
+        (element as any).inert = inert;
+      });
+
+      const previousBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      window.scrollTo(scrollX, scrollY);
+      root.style.scrollBehavior = previousBehavior;
+
+      if (previousFocus?.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    modalRef.current?.focus({ preventScroll: true });
+  }, [step]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const modal = modalRef.current;
+      if (!modal) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (busyRef.current) return;
+
+        if (stepRef.current === 'form-payment' || stepRef.current === 'form-consultation') {
+          handleBack();
+        } else {
           handleClose();
         }
+        return;
       }
 
-      if (e.key === 'Tab') {
-        const focusableElements = modal.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+      if (event.key !== 'Tab') return;
 
-        if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter(
+        (element) =>
+          element.tabIndex >= 0 &&
+          element.getClientRects().length > 0 &&
+          !element.closest('[inert]') &&
+          window.getComputedStyle(element).visibility !== 'hidden',
+      );
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (!first || !last) {
+        event.preventDefault();
+        modal.focus();
+        return;
+      }
+
+      if (
+        event.shiftKey &&
+        (active === first || active === modal || !modal.contains(active))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (active === last || active === modal || !modal.contains(active))
+      ) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
-    modal.addEventListener('keydown', handleKeyDown);
-    // Focus first interactive element
-    setTimeout(() => {
-      const firstFocusable = modal.querySelector<HTMLElement>(
-        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      firstFocusable?.focus();
-    }, 100);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleBack, handleClose]);
 
-    return () => modal.removeEventListener('keydown', handleKeyDown);
-  }, [viewState, paymentState.mode, handleBackToDetail, handleClose]);
+  const showSuccess = useCallback(
+    (paymentResult: PaymentResult, variant: FormVariant) => {
+      setLastSubmittedVariant(variant);
+      setPaymentState({ mode: 'result', result: paymentResult });
+      setStep('result');
+      writeStep('result', true);
+      busyRef.current = false;
+      setIsFormLoading(false);
+    },
+    [writeStep],
+  );
 
   const handlePaymentInitiate = useCallback(
-    async (data: {
-      studentName: string;
-      phoneNumber: string;
-      courseId: string;
-      registrationType: RegistrationType;
-      paymentMode: PaymentMode;
-    }) => {
+    async (data: PaymentPayload) => {
+      if (busyRef.current || closingRef.current) return;
+
+      if (!canPay) {
+        setFormError('این روش پرداخت در حال حاضر در دسترس نیست.');
+        return;
+      }
+
+      busyRef.current = true;
       setIsFormLoading(true);
       setFormError(null);
       setPaymentState({ mode: 'initiating' });
       setLastSubmittedVariant('payment');
 
+      const controller = new AbortController();
+      requestRef.current = controller;
+      let redirecting = false;
+
       try {
-        const response = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
+        const response = await postJson(
+          '/api/orders',
+          {
+            ...data,
+            courseId: String(course.id),
+            registrationType: selectedMode,
+            paymentMode,
+          },
+          controller.signal,
+        );
 
-        const result = await response.json();
+        if (!mountedRef.current) return;
 
-        if (!response.ok) {
-          throw new Error(result.error || 'خطا در ایجاد سفارش');
-        }
-
-        // Handle mock/test mode - simulate successful payment directly in modal
-        if (result.mockMode || result.isTest) {
-          setPaymentState({
-            mode: 'result',
-            result: { status: 'success', orderId: result.orderId },
-          });
-          setViewState('result');
-          setFormVariant(null);
-          setIsFormLoading(false);
+        if (response.mockMode || response.isTest) {
+          showSuccess({ status: 'success', orderId: response.orderId }, 'payment');
           return;
         }
 
-        // Real mode - redirect to Zarinpal
-setPaymentState({ mode: 'redirecting', paymentUrl: result.payUrl });
-window.location.href = result.payUrl;
+        if (typeof response.payUrl !== 'string' || !response.payUrl.trim()) {
+          throw new Error('آدرس درگاه پرداخت دریافت نشد. دوباره تلاش کنید.');
+        }
+
+        const paymentUrl = new URL(response.payUrl, window.location.origin);
+
+        if (
+          paymentUrl.protocol !== 'https:' &&
+          !(paymentUrl.protocol === 'http:' && paymentUrl.origin === window.location.origin)
+        ) {
+          throw new Error('آدرس درگاه پرداخت معتبر نیست.');
+        }
+
+        setPaymentState({ mode: 'redirecting', paymentUrl: paymentUrl.href });
+        window.location.assign(paymentUrl.href);
+        redirecting = true;
       } catch (error) {
-        console.error('Payment initiation error:', error);
-        setFormError(error instanceof Error ? error.message : 'خطا در برقراری ارتباط با درگاه پرداخت');
+        if (!mountedRef.current || controller.signal.aborted) return;
+
         setPaymentState({ mode: 'idle' });
-        setIsFormLoading(false);
+        setFormError(
+          error instanceof Error ? error.message : 'ارتباط با درگاه پرداخت برقرار نشد.',
+        );
+      } finally {
+        if (!redirecting) {
+          busyRef.current = false;
+          if (mountedRef.current) setIsFormLoading(false);
+        }
+
+        if (requestRef.current === controller) {
+          requestRef.current = null;
+        }
       }
     },
-    [],
+    [canPay, course.id, paymentMode, selectedMode, showSuccess],
   );
 
   const handleConsultation = useCallback(
-    async (data: {
-      studentName: string;
-      phoneNumber: string;
-      courseId: string;
-      registrationType: RegistrationType;
-    }) => {
+    async (data: ConsultationPayload) => {
+      if (busyRef.current || closingRef.current) return;
+
+      busyRef.current = true;
       setIsFormLoading(true);
       setFormError(null);
       setLastSubmittedVariant('consultation');
 
+      const controller = new AbortController();
+      requestRef.current = controller;
+
       try {
-        const response = await fetch('/api/consultations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
+        const response = await postJson(
+          '/api/consultations',
+          {
+            ...data,
+            courseId: String(course.id),
+            registrationType: selectedMode,
+          },
+          controller.signal,
+        );
 
-        const result = await response.json();
+        if (!mountedRef.current) return;
 
-        if (!response.ok) {
-          throw new Error(result.error || 'خطا در ثبت درخواست مشاوره');
-        }
-
-        setPaymentState({
-          mode: 'result',
-          result: { status: 'success', orderId: result.consultationId },
-        });
-        setViewState('result');
-        setFormVariant(null);
+        showSuccess(
+          { status: 'success', orderId: response.consultationId },
+          'consultation',
+        );
       } catch (error) {
-        console.error('Consultation error:', error);
-        setFormError(error instanceof Error ? error.message : 'خطا در ثبت درخواست مشاوره');
+        if (!mountedRef.current || controller.signal.aborted) return;
+
+        setFormError(
+          error instanceof Error
+            ? error.message
+            : 'درخواست مشاوره ثبت نشد. لطفاً دوباره تلاش کنید.',
+        );
       } finally {
-        setIsFormLoading(false);
+        busyRef.current = false;
+        if (mountedRef.current) setIsFormLoading(false);
+
+        if (requestRef.current === controller) {
+          requestRef.current = null;
+        }
       }
     },
-    [],
+    [course.id, selectedMode, showSuccess],
   );
 
-  if (!course) return null;
+  const handleRetry = useCallback(() => {
+    if (busyRef.current) return;
+    setPaymentState({ mode: 'idle' });
+    navigate('detail', true);
+  }, [navigate]);
 
-const result = paymentState.mode === 'result' ? paymentState.result : null;
-const showResult = (viewState === 'result' || paymentState.mode === 'result') && !!result;
-  const hasTabs = availableModes.length > 1;
+  const heading = isResult
+    ? 'نتیجه درخواست'
+    : isForm
+      ? formVariant === 'payment'
+        ? 'تکمیل ثبت‌نام'
+        : 'درخواست مشاوره'
+      : course.title;
 
   return (
-    <>
-      <AnimatePresence>
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
-        >
-          <div
-            className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
-            onClick={handleClose}
-            aria-hidden="true"
-          />
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.16 }}
+    >
+      <div
+        className="absolute inset-0 bg-slate-950/50"
+        aria-hidden="true"
+        onClick={handleClose}
+      />
 
-          <motion.div
-            ref={modalRef}
-            dir="rtl"
-            initial={{ y: 60, opacity: 0, scale: 0.96 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 40, opacity: 0, scale: 0.97 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+      <motion.div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-busy={isBusy}
+        tabIndex={-1}
+        dir="rtl"
+        initial={{ y: reducedMotion ? 0 : 20 }}
+        animate={{ y: 0 }}
+        exit={{ y: reducedMotion ? 0 : 12 }}
+        transition={{
+          duration: reducedMotion ? 0 : 0.18,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className={cn(
+          'relative flex max-h-[94dvh] w-full min-w-0 flex-col overflow-hidden',
+          'rounded-t-3xl bg-white shadow-xl outline-none',
+          'sm:max-h-[90dvh] sm:max-w-3xl sm:rounded-2xl',
+        )}
+      >
+        <header className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+          {isForm && (
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={isBusy}
+              aria-label="بازگشت به جزئیات دوره"
+              className={cn(
+                'inline-flex size-11 shrink-0 items-center justify-center rounded-xl',
+                'text-slate-600 hover:bg-slate-100 disabled:opacity-40',
+                focusRing,
+              )}
+            >
+              <ArrowRight className="size-5" aria-hidden="true" />
+            </button>
+          )}
+
+          <div className="min-w-0 flex-1">
+            <h2
+              id={titleId}
+              className="line-clamp-2 text-base font-bold leading-7 text-slate-900 sm:text-lg"
+            >
+              {heading}
+            </h2>
+
+            {isForm && (
+              <p className="mt-0.5 truncate text-xs text-slate-500">
+                {course.title} · {getModeLabel(selectedMode)}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isBusy}
+            aria-label="بستن پنجره"
             className={cn(
-              'relative flex min-h-[420px] max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl',
+              'inline-flex size-11 shrink-0 items-center justify-center rounded-xl',
+              'text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900',
+              'disabled:cursor-not-allowed disabled:opacity-40',
+              focusRing,
             )}
           >
-            {/* Result State View */}
-            {showResult && (
-              <div className="flex-1 flex flex-col items-center justify-center bg-white p-6 sm:p-8">
-                <AnimatePresence mode="wait">
-                  {result?.status === 'success' && (
-                    <motion.div
-                      key="success"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      className="max-w-md space-y-4 text-center"
-                    >
-                      <motion.div
-                        initial={{ scale: 0.5 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-                        className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100"
-                      >
-                        <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-                      </motion.div>
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </header>
 
-                      <h3 className="text-2xl font-bold text-slate-900">
-                        {lastSubmittedVariant === 'consultation'
-                          ? 'درخواست مشاوره با موفقیت ثبت شد'
-                          : result?.orderId
-                            ? 'پرداخت با موفقیت انجام شد'
-                            : 'رزرو رایگان با موفقیت ثبت شد'}
-                      </h3>
-                      <p className="text-slate-600">
-                        {lastSubmittedVariant === 'consultation'
-                          ? 'پشتیبانی آکادمی در سریع‌ترین زمان با شما تماس خواهد گرفت.'
-                          : result?.orderId
-                            ? 'شماره پیگیری: ' + result.orderId.slice(0, 8).toUpperCase()
-                            : 'پشتیبانی آکادمی در سریع‌ترین زمان با شما تماس خواهد گرفت.'}
-                      </p>
-                      <button
-                        onClick={handlePaymentSuccess}
-                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-indigo-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-indigo-800"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        متوجه شدم و بستن
-                      </button>
-                    </motion.div>
-                  )}
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          {step === 'detail' && (
+            <div className="space-y-6 p-4 sm:p-6">
+              <div
+                className={cn(
+                  'grid items-start gap-5 sm:gap-6',
+                  course.coverImageUrl && 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
+                )}
+              >
+                {course.coverImageUrl && (
+                  <CoursePoster
+                    key={course.coverImageUrl}
+                    src={course.coverImageUrl}
+                    title={course.title}
+                  />
+                )}
 
-                  {(result?.status === 'failed' || result?.status === 'cancelled') && (
-                    <motion.div
-                      key="failed"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      className="max-w-md space-y-4 text-center"
-                    >
-                      <motion.div
-                        initial={{ scale: 0.5 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-                        className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-red-100"
-                      >
-                        <AlertCircle className="h-10 w-10 text-red-600" />
-                      </motion.div>
+                <div className="min-w-0 space-y-5">
+                  <fieldset>
+                    <legend className="mb-2.5 text-xs font-medium text-slate-500">
+                      نحوه برگزاری
+                    </legend>
 
-                      <h3 className="text-2xl font-bold text-slate-900">
-                        {result.status === 'cancelled' ? 'پرداخت لغو شد' : 'عملیات ناموفق بود'}
-                      </h3>
+                    <div className="flex gap-2">
+                      {availableModes.map((mode) => {
+                        const selected = selectedMode === mode;
+                        const Icon = mode === 'in_person' ? MapPinned : Monitor;
 
-                      <p className="text-slate-600">
-                        {result.error || formError || 'تراکنش توسط کاربر لغو شد یا با خطا مواجه گردید.'}
-                      </p>
-
-                      <div className="flex justify-center gap-3">
-                        <button
-                          onClick={handleRetry}
-                          className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-indigo-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-indigo-800"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                          تلاش مجدد
-                        </button>
-                        <button
-                          onClick={handleClose}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                        >
-                          <X className="h-4 w-4" />
-                          بستن
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-            {/* Detail View */}
-            {!showResult && viewState === 'detail' && (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Top bar - Attendance Tabs */}
-                <div className="border-b border-slate-200/80 px-5 py-4 bg-white">
-                      {hasTabs && (
-                        <div className="mb-3 w-full inline-flex rounded-2xl bg-slate-100 p-1 shadow-inner" role="tablist" aria-label="نوع برگزاری">
-                          {availableModes.map((mode) => {
-                            const active = selectedMode === mode;
-                            const Icon = getModeIcon(mode) === 'map-pin' ? MapPinned : Monitor;
-                            return (
-                              <button
-                                key={mode}
-                                type="button"
-                                role="tab"
-                                aria-selected={active}
-                                aria-controls={`panel-${mode}`}
-                                id={`tab-${mode}`}
-                                onClick={() => {
-                                  setSelectedMode(mode);
-                                  setPaymentMode('cash'); // Reset to cash default on mode change
-                                }}
-                                className={cn(
-                                  'relative rounded-xl px-4 py-2 text-sm font-bold w-1/2 transition-all',
-                                  active ? theme.tabActive : theme.tabInactive,
-                                )}
-                              >
-                                <span className="inline-flex items-center gap-2">
-                                  <Icon className="h-4 w-4" aria-hidden="true" />
-                                  {mode === 'in_person' ? 'حضوری' : 'آنلاین'}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                </div>
-
-                {/* Scrollable content - Single column layout */}
-                <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6">
-                  <div className="space-y-6 max-w-3xl mx-auto">
-                    {/* Course Poster */}
-                    {course.coverImageUrl && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100"
-                      >
-                        <Image
-                          src={course.coverImageUrl}
-                          alt={course.title}
-                          fill
-                          className="object-contain"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                          priority
-                        />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur">
-                            {selectedMode === 'in_person' ? (
-                              <>
-                                <MapPinned className="h-3 w-3" />
-                                حضوری
-                              </>
-                            ) : (
-                              <>
-                                <Monitor className="h-3 w-3" />
-                                آنلاین
-                              </>
+                        return (
+                          <label
+                            key={mode}
+                            className={cn(
+                              'relative flex min-h-11 min-w-0 flex-1 cursor-pointer',
+                              'items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm',
+                              'transition-colors focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2',
+                              selected
+                                ? 'border-indigo-200 bg-indigo-50 font-semibold text-indigo-700'
+                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
                             )}
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
+                          >
+                            <input
+                              type="radio"
+                              name={attendanceName}
+                              value={mode}
+                              checked={selected}
+                              className="sr-only"
+                              onChange={() => {
+                                setSelectedMode(mode);
+                                setPaymentMode('cash');
+                                setFormError(null);
+                              }}
+                            />
+                            <Icon className="size-4 shrink-0" aria-hidden="true" />
+                            {getModeLabel(mode)}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
 
-                    {/* Cash/Installment Selector */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="rounded-2xl p-4 border border-slate-200 bg-white shadow-sm"
-                    >
-                      <label className="mb-3 block text-sm font-semibold text-slate-700">نحوه پرداخت</label>
-                      <div className="relative flex w-full rounded-2xl bg-slate-100 p-1.5 shadow-inner" dir="rtl" role="radiogroup" aria-label="نحوه پرداخت">
+                  {currentOffering && supportsInstallments && (
+                    <fieldset>
+                      <legend className="mb-2.5 text-xs font-medium text-slate-500">
+                        روش پرداخت
+                      </legend>
+
+                      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
                         {[
-                          { id: 'cash' as PaymentMode, label: 'نقدی', icon: CreditCard },
-                          { id: 'installment' as PaymentMode, label: currentOffering ? `اقساط (${currentOffering.installmentsCount} مرحله)` : 'اقساط', icon: CreditCard },
-                        ].map((option) => {
-                          const isSelected = paymentMode === option.id;
-                          const isDisabled = option.id === 'installment' && (!currentOffering || currentOffering.installmentsCount <= 0);
-                          return (
-                            <button
-                              key={option.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={isSelected}
-                              aria-disabled={isDisabled}
-                              onClick={() => !isDisabled && setPaymentMode(option.id)}
-                              disabled={isDisabled}
-                              className={cn(
-                                'relative z-10 flex flex-1 items-center justify-center rounded-xl py-3.5 text-sm font-bold transition-all duration-200',
-                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2',
-                                isSelected
-                                  ? 'text-slate-900 shadow-sm'
-                                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50',
-                                isDisabled && 'opacity-50 cursor-not-allowed',
-                              )}
-                              style={{ minHeight: '48px', minWidth: '120px' }}
-                            >
-                              {isSelected && (
-                                <motion.div
-                                  layoutId="payment-toggle-bg"
-                                  className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5"
-                                  initial={false}
-                                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                />
-                              )}
-                              <span className="relative z-20 flex items-center gap-1.5">
-                                <option.icon className="h-4 w-4" aria-hidden="true" />
-                                {option.label}
-                              </span>
-                              <input
-                                type="radio"
-                                name="payment-mode"
-                                checked={isSelected}
-                                disabled={isDisabled}
-                                readOnly
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                aria-hidden="true"
-                              />
-                            </button>
-                          );
-                        })}
+                          { value: 'cash', label: 'نقدی' },
+                          { value: 'installment', label: 'اقساطی' },
+                        ].map((option) => (
+                          <label
+                            key={option.value}
+                            className={cn(
+                              'flex min-h-10 flex-1 cursor-pointer items-center justify-center',
+                              'rounded-lg px-3 py-2 text-sm transition-colors',
+                              'focus-within:ring-2 focus-within:ring-indigo-500',
+                              paymentMode === option.value
+                                ? 'bg-white font-semibold text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-800',
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name={paymentName}
+                              value={option.value}
+                              checked={paymentMode === option.value}
+                              onChange={() =>
+                                changePaymentMode(option.value as PaymentMode)
+                              }
+                              className="sr-only"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
                       </div>
-                      {paymentMode === 'installment' && !currentOffering?.installmentsCount && (
-                        <p className="mt-2 text-sm text-amber-700 text-center" role="alert">برنامه اقساطی برای این گزینه موجود نیست</p>
-                      )}
-                    </motion.div>
+                    </fieldset>
+                  )}
 
-                    {/* Pricing Presentation */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                      className="space-y-4"
+                  {pricing && (
+                    <section
+                      aria-label="هزینه دوره"
+                      className="rounded-2xl flex flex-col items-center justify-center border border-slate-200 p-4 sm:p-5"
                     >
-                      {pricing && (
-                        <>
-                          {paymentMode === 'cash' && (
-                            <div className="rounded-2xl p-6 text-center" style={{ background: `linear-gradient(135deg, ${theme.pricingGradient})` }}>
-                              {pricing.discountPercent > 0 && pricing.originalAmount && pricing.originalAmount > pricing.baseAmount && (
-                                <p className="mb-2 text-sm text-white/80 line-through">
-                                  قیمت اصلی: <span className="fa-nums">{formatPrice(pricing.originalAmount)}</span> تومان
-                                </p>
-                              )}
-                              <p className="text-4xl font-extrabold text-slate-800 fa-nums">
-                                {formatPrice(pricing.baseAmount)}
-                              </p>
-                              <p className="mt-1 text-slate-800/90">تومان (پرداخت یک‌جا)</p>
-                              {pricing.discountPercent > 0 && (
-                                <motion.span
-                                  initial={{ scale: 0.8, opacity: 0 }}
-                                  animate={{ scale: 1, opacity: 1 }}
-                                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold text-white"
-                                >
-                                  <span className="h-3.5 w-3.5" />
-                                  {pricing.discountPercent}٪ تخفیف
-                                </motion.span>
-                              )}
-                            </div>
-                          )}
-
-                          {paymentMode === 'installment' && pricing.installments.length > 0 && (
-                            <div className="space-y-3">
-                              {/* Summary Card */}
-                              <div className="rounded-2xl p-4 border border-slate-200 bg-slate-50">
-                                <div className="flex items-center justify-between gap-4 flex-wrap">
-                                  <div className="flex flex-col">
-                                    <p className="text-sm font-medium text-slate-600">مجموع اقساط</p>
-                                    <p className="text-2xl font-extrabold fa-nums text-slate-900">
-                                      {formatPrice(pricing.totalAmount)} تومان
-                                    </p>
-                                  </div>
-                                  {pricing.discountPercent > 0 && pricing.originalAmount && pricing.originalAmount > pricing.baseAmount && (
-                                    <div className="text-right">
-                                      <p className="text-sm text-slate-500 line-through fa-nums">
-                                        {formatPrice(pricing.originalAmount)} تومان
-                                      </p>
-                                      <motion.span
-                                        initial={{ scale: 0.8, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-white"
-                                        style={{ background: `linear-gradient(135deg, ${theme.pricingGradient})` }}
-                                      >
-                                        <span className="h-3 w-3" />
-                                        {pricing.discountPercent}٪ تخفیف
-                                      </motion.span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Installment Breakdown - List style without table headers */}
-                              <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                                <div className="space-y-0">
-                                  {pricing.installments.map((item, i) => (
-                                    <motion.div
-                                      key={item.index}
-                                      initial={{ opacity: 0, x: 20 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: i * 0.04 }}
-                                      className={cn(
-                                        'flex flex-col sm:flex-row sm:justify-between gap-3 px-4 py-3 items-start sm:items-center border-b border-slate-100 last:border-b-0 transition-colors',
-                                        i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50',
-                                        item.isDownPayment ? 'bg-linear-to-r from-amber-50 to-white' : ''
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <span className={cn(
-                                          'shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold',
-                                          item.isDownPayment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
-                                        )}>
-                                          {item.index}
-                                        </span>
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          {item.isDownPayment && (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 shrink-0">
-                                              پیش‌پرداخت
-                                            </span>
-                                          )}
-                                          <span className={cn('font-medium text-slate-700 truncate', item.isDownPayment && 'font-bold')}>
-                                            {item.label}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        <span className="font-bold tabular-nums fa-nums text-slate-900 text-left">
-                                          {formatPrice(item.amount)}
-                                        </span>
-                                        <span className="text-[10px] font-normal text-slate-500 shrink-0">تومان</span>
-                                      </div>
-                                    </motion.div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {paymentMode === 'installment' && pricing.installments.length === 0 && (
-                            <div className="rounded-2xl p-6 text-center border border-slate-200 bg-slate-50">
-                              <CreditCard className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-                              <p className="text-slate-600">برنامه اقساطی برای این گزینه موجود نیست</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {!offeringAvailable && (
-                        <div className="rounded-2xl p-6 text-center border border-red-200 bg-red-50">
-                          <AlertCircle className="mx-auto mb-3 h-12 w-12 text-red-500" />
-                          <p className="text-red-700 font-medium">این گزینه در حال حاضر در دسترس نیست</p>
-                          <p className="mt-1 text-sm text-red-600">لطفاً گزینه دیگر را انتخاب کنید</p>
-                        </div>
-                      )}
-
-                      {!currentOffering && (
-                        <div className="rounded-2xl p-6 text-center border border-slate-200 bg-slate-50">
-                          <AlertCircle className="mx-auto mb-3 h-12 w-12 text-slate-400" />
-                          <p className="text-slate-600">اطلاعات قیمت برای این گزینه موجود نیست</p>
-                        </div>
-                      )}
-                    </motion.div>
-
-                    {/* Course Description - Full width */}
-{/* Course Description - Markdown Rendered */}
-{course.description && (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.2 }}
-    className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
-  >
-    <article className="prose prose-slate prose-sm sm:prose-base max-w-none dir-rtl text-right leading-relaxed prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-lg prose-h2:border-b prose-h2:border-slate-100 prose-h2:pb-2 prose-h2:mt-4 prose-h2:mb-3 prose-p:text-slate-600 prose-p:leading-7 prose-li:text-slate-700 prose-strong:text-slate-900 prose-hr:my-4 prose-hr:border-slate-200">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {course.description}
-      </ReactMarkdown>
-    </article>
-  </motion.div>
-)}
-                    {/* Consultation Info */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                      className="rounded-2xl p-4 border border-amber-200 bg-amber-50/50"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="h-3 w-3 bg-amber-600 rounded-2xl" />
-                        <h4 className="font-semibold text-amber-900">درخواست مشاوره رایگان</h4>
-                      </div>
-                      <p className="text-sm text-amber-800">
-                        اگر در انتخاب دوره یا نحوه برگزاری مشکلی دارید، درخواست مشاوره رایگان ثبت کنید.
-                        کارشناسان ما در سریع‌ترین وقت با شما تماس گرفته و راهنمایی خواهند کرد.
+                      <p className="text-xs text-slate-500">
+                        {paymentMode === 'installment'
+                          ? 'مجموع مبلغ اقساط'
+                          : 'هزینه ثبت‌نام'}
                       </p>
-                    </motion.div>
-                  </div>
+
+                      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="fa-nums break-words text-2xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-3xl">
+                          {formatPrice(
+                            paymentMode === 'installment'
+                              ? pricing.totalAmount
+                              : pricing.baseAmount,
+                          )}
+                        </span>
+                        <span className="text-xs text-slate-500">تومان</span>
+                      </div>
+
+                      {pricing.discountPercent > 0 &&
+                        !!pricing.originalAmount &&
+                        pricing.originalAmount > pricing.baseAmount && (
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                            <del className="fa-nums text-slate-400">
+                              {formatPrice(pricing.originalAmount)} تومان
+                            </del>
+                            <span className="fa-nums rounded-md bg-emerald-50 px-2 py-1 font-medium text-emerald-700">
+                              {pricing.discountPercent}٪ تخفیف
+                            </span>
+                          </div>
+                        )}
+
+                      {paymentMode === 'installment' &&
+                        firstInstallmentAmount !== null && (
+                          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
+                            <span className="text-slate-500">پرداخت امروز</span>
+                            <span className="fa-nums font-semibold text-indigo-700">
+                              {formatPrice(firstInstallmentAmount)} تومان
+                            </span>
+                          </div>
+                        )}
+                    </section>
+                  )}
+
+                  {(!currentOffering || !offeringAvailable) && (
+                    <div
+                      role="status"
+                      className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm leading-6 text-amber-800"
+                    >
+                      <AlertCircle
+                        className="mt-0.5 size-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <p>
+                        {!currentOffering
+                          ? 'اطلاعات قیمت این گزینه موجود نیست. برای راهنمایی، درخواست مشاوره ثبت کنید.'
+                          : 'ثبت‌نام این گزینه فعلاً فعال نیست. می‌توانید درخواست مشاوره ثبت کنید.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMode === 'installment' &&
+                    pricing &&
+                    pricing.installments.length === 0 && (
+                      <p className="text-sm leading-6 text-amber-700" role="status">
+                        برنامه اقساط این گزینه در دسترس نیست.
+                      </p>
+                    )}
                 </div>
+              </div>
 
-                {/* Sticky Footer */}
-                <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-6">
-                  <div className="grid gap-3 sm:grid-cols-2 max-w-3xl mx-auto">
-                    <button
-                      onClick={openPaymentForm}
-                      disabled={paymentState.mode === 'initiating' || paymentState.mode === 'redirecting' || !offeringAvailable || !pricing}
-                      className={cn(
-                        'flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-semibold text-white transition active:scale-[0.98]',
-                        'disabled:cursor-not-allowed disabled:opacity-50',
-                        'bg-linear-to-r shadow-lg',
-                        theme.primaryGradient,
-                        theme.primaryShadow,
-                      )}
-                    >
-                      {paymentState.mode === 'initiating' ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <CreditCard className="h-5 w-5" />
-                      )}
-                      {paymentMode === 'installment' && firstInstallmentAmount
-                        ? `پرداخت پیش‌پرداخت (${formatPrice(firstInstallmentAmount)} تومان)`
-                        : `پرداخت نقدی (${formatPrice(pricing?.baseAmount ?? 0)} تومان)`}
-                    </button>
+              {paymentMode === 'installment' && pricing && pricing.installments.length > 0 && (
+                <section aria-label="برنامه اقساط">
+                  <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                    برنامه پرداخت
+                  </h3>
 
-                    <button
-                      onClick={openConsultationForm}
-                      disabled={paymentState.mode === 'initiating' || paymentState.mode === 'redirecting'}
-                      className={cn(
-                        'flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5',
-                        'font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]',
-                        'disabled:cursor-not-allowed disabled:opacity-50',
-                      )}
-                    >
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                        <span className="text-[10px] font-bold">!</span>
-                      </span>
-                      درخواست مشاوره (رایگان)
-                    </button>
-                  </div>
+                  <ol className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+                    {pricing.installments.map((item) => (
+                      <li
+                        key={`${item.index}-${item.amount}`}
+                        className={cn(
+                          'flex items-center justify-between gap-x-4 gap-y-2 px-4 py-3',
+                          item.isDownPayment ? 'bg-indigo-50/50' : 'bg-white',
+                        )}
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="fa-nums flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-500">
+                            {item.index}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="break-words text-sm text-slate-700">{item.label}</p>
+                            {item.isDownPayment && (
+                              <p className="mt-0.5 text-xs text-indigo-600">پیش‌پرداخت</p>
+                            )}
+                          </div>
+                        </div>
 
-                  <p className="mt-3 text-center text-xs text-slate-500">
-                    با ثبت‌نام، شما با{' '}
-                    <a
-                      href="/terms"
-                      className="underline hover:text-indigo-600"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      شرایط و قوانین
-                    </a>{' '}
-                    موافقت می‌کنید.
+                        <p className="fa-nums mr-auto whitespace-nowrap text-sm font-semibold tabular-nums text-slate-900">
+                          {formatPrice(item.amount)}
+                          <span className="mr-1.5 text-xs font-normal text-slate-500">
+                            تومان
+                          </span>
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              {course.description && (
+                <details
+                  className="group rounded-2xl border border-slate-200"
+                  onToggle={(event) => setDescriptionOpen(event.currentTarget.open)}
+                >
+                  <summary
+                    className={cn(
+                      'flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3',
+                      'text-sm font-semibold text-slate-800 [&::-webkit-details-marker]:hidden',
+                      focusRing,
+                    )}
+                  >
+                    توضیحات و جزئیات دوره
+                    <ChevronDown
+                      className="size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                      aria-hidden="true"
+                    />
+                  </summary>
+
+                  {descriptionOpen && (
+                    <div className="border-t border-slate-100 px-4 py-4 sm:px-5">
+                      <CourseDescription>{course.description}</CourseDescription>
+                    </div>
+                  )}
+                </details>
+              )}
+
+              <p className="text-center text-xs leading-6 text-slate-500">
+                برای انتخاب دوره یا روش پرداخت نیاز به راهنمایی دارید؟
+                <br className="sm:hidden" /> مشاوره رایگان در دسترس شماست.
+              </p>
+            </div>
+          )}
+
+          {isForm && (
+            <div className="mx-auto w-full max-w-xl p-4 sm:p-6">
+              <RegistrationForm
+                key={formVariant}
+                course={course}
+                registrationType={selectedMode}
+                paymentMode={paymentMode}
+                onPaymentModeChange={changePaymentMode}
+                onPaymentInitiate={handlePaymentInitiate}
+                onConsultation={handleConsultation}
+                isLoading={isBusy}
+                error={formError}
+                variant={formVariant}
+                onClose={handleBack}
+                offering={currentOffering}
+                pricing={pricing}
+                firstInstallmentAmount={firstInstallmentAmount}
+                installmentItems={installmentItems}
+              />
+
+              {paymentState.mode === 'redirecting' && (
+                <p
+                  role="status"
+                  className="mt-4 flex items-center justify-center gap-2 text-sm text-indigo-700"
+                >
+                  <Loader2
+                    className="size-4 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                  در حال انتقال به درگاه پرداخت…
+                </p>
+              )}
+            </div>
+          )}
+
+          {isResult && result && (
+            <div
+              className="mx-auto flex min-h-80 max-w-md flex-col items-center justify-center px-5 py-10 text-center sm:py-14"
+              role="status"
+              aria-live="polite"
+            >
+              <div
+                className={cn(
+                  'mb-5 flex size-16 items-center justify-center rounded-full',
+                  result.status === 'success'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : 'bg-rose-50 text-rose-600',
+                )}
+              >
+                {result.status === 'success' ? (
+                  <CheckCircle2 className="size-8" aria-hidden="true" />
+                ) : (
+                  <AlertCircle className="size-8" aria-hidden="true" />
+                )}
+              </div>
+
+              <h3 className="text-lg font-bold leading-8 text-slate-900 sm:text-xl">
+                {result.status === 'success'
+                  ? lastSubmittedVariant === 'consultation'
+                    ? 'درخواست مشاوره ثبت شد'
+                    : 'ثبت‌نام با موفقیت انجام شد'
+                  : result.status === 'cancelled'
+                    ? 'پرداخت لغو شد'
+                    : 'پرداخت انجام نشد'}
+              </h3>
+
+              <p className="mt-3 text-sm leading-7 text-slate-500">
+                {result.status === 'success'
+                  ? lastSubmittedVariant === 'consultation'
+                    ? 'کارشناسان آکادمی برای راهنمایی با شما تماس می‌گیرند.'
+                    : 'درخواست شما با موفقیت ثبت شد.'
+                  : result.error || 'تراکنش تکمیل نشد. می‌توانید دوباره تلاش کنید.'}
+              </p>
+
+              {result.status === 'success' && result.orderId && (
+                <div className="mt-5 w-full rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="mb-1.5 text-xs text-slate-500">شماره پیگیری</p>
+                  <p
+                    dir="ltr"
+                    className="select-all break-all text-sm font-semibold text-slate-800"
+                  >
+                    {result.orderId}
                   </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Form View */}
-            {!showResult && viewState === 'form' && formVariant && (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="border-b border-slate-200 px-5 py-4 bg-white flex items-center justify-between">
+              <div className="mt-7 flex w-full flex-wrap justify-center gap-3">
+                {result.status !== 'success' && (
                   <button
-                    onClick={handleBackToDetail}
                     type="button"
-                    className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-                    aria-label="بازگشت به جزئیات دوره"
+                    onClick={handleRetry}
+                    className={cn(primaryButton, 'flex-1')}
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    بازگشت
+                    <RotateCcw className="size-4" aria-hidden="true" />
+                    تلاش مجدد
                   </button>
-                  <h2 className="text-lg font-bold text-slate-900 flex-1 text-center">
-                    {formVariant === 'payment' ? 'اطلاعات پرداخت' : 'فرم درخواست مشاوره'}
-                  </h2>
-                  <div className="w-24" />
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6">
-                  <RegistrationForm
-                    course={course}
-                    registrationType={selectedMode}
-                    paymentMode={paymentMode}
-                    onPaymentModeChange={setPaymentMode}
-                    onPaymentInitiate={handlePaymentInitiate}
-                    onConsultation={handleConsultation}
-                    isLoading={isFormLoading || paymentState.mode === 'initiating' || paymentState.mode === 'redirecting'}
-                    error={formError}
-                    variant={formVariant}
-                    onClose={handleBackToDetail}
-                    offering={currentOffering}
-                    pricing={pricing}
-                    firstInstallmentAmount={firstInstallmentAmount}
-                    installmentItems={installmentItems}
-                  />
-                </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className={cn(
+                    result.status === 'success' ? primaryButton : secondaryButton,
+                    'flex-1',
+                  )}
+                >
+                  {result.status === 'success' ? 'متوجه شدم' : 'بستن'}
+                </button>
               </div>
-            )}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-    </>
+            </div>
+          )}
+        </div>
+
+        {step === 'detail' && (
+          <footer
+            className="shrink-0 border-t border-slate-100 bg-white px-4 pt-3 sm:px-6 sm:pt-4"
+            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-slate-500">
+                {paymentMode === 'installment' ? 'مبلغ مرحله اول' : 'مبلغ قابل پرداخت'}
+              </span>
+
+              <p className="fa-nums text-lg font-bold tabular-nums text-slate-900">
+                {canPay && amountDue !== null ? (
+                  amountDue === 0 ? (
+                    'رایگان'
+                  ) : (
+                    <>
+                      {formatPrice(amountDue)}
+                      <span className="mr-1.5 text-xs font-normal text-slate-500">تومان</span>
+                    </>
+                  )
+                ) : (
+                  <span className="text-sm font-medium text-slate-400">ثبت‌نام غیرفعال</span>
+                )}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('form-payment')}
+                disabled={!canPay || isBusy}
+                className={primaryButton}
+              >
+                <CreditCard className="size-4 shrink-0" aria-hidden="true" />
+                ثبت‌نام
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('form-consultation')}
+                disabled={isBusy}
+                className={secondaryButton}
+              >
+                <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+                مشاوره رایگان
+              </button>
+            </div>
+
+            <p className="mt-2.5 text-center text-[11px] leading-5 text-slate-400">
+              ثبت‌نام به معنی پذیرش{' '}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  'rounded text-slate-600 underline underline-offset-4 hover:text-indigo-600',
+                  focusRing,
+                )}
+              >
+                شرایط و قوانین
+              </a>{' '}
+              است.
+            </p>
+          </footer>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1024,8 +1335,16 @@ export default function RegistrationModal({
   registrationType,
   onClose,
 }: RegistrationModalProps) {
-  return (
-    <AnimatePresence>
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  if (!portalReady) return null;
+
+  return createPortal(
+    <AnimatePresence initial={false} mode="wait">
       {course && (
         <ModalContent
           key={course.id}
@@ -1034,6 +1353,7 @@ export default function RegistrationModal({
           onClose={onClose}
         />
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

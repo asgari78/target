@@ -20,7 +20,7 @@ import { getAvailableModes } from '@/src/lib/utils';
 interface CourseRowProps {
   course: Course;
   index: number;
-  onRegisterClick: (course: Course, type: 'in_person' | 'online') => void;
+  onRegisterClick: (course: Course, type: 'in_person' | 'online' | 'ofline') => void;
 }
 
 function toPersianDigits(value: string | number) {
@@ -43,10 +43,11 @@ function formatPrice(price: number) {
   return `${toPersianDigits(new Intl.NumberFormat('fa-IR').format(price))} تومان`;
 }
 
-function choosePrimaryMode(course: Course): 'in_person' | 'online' {
+function choosePrimaryMode(course: Course): 'in_person' | 'online'|'ofline' {
   const modes = getAvailableModes(course);
   if (modes.includes('in_person')) return 'in_person';
   if (modes.includes('online')) return 'online';
+  if (modes.includes('ofline')) return 'ofline';
   return 'in_person';
 }
 
@@ -54,6 +55,7 @@ function buildModeLabel(course: Course) {
   if (course.inPersonAvailable && course.onlineAvailable) return 'حضوری / آنلاین';
   if (course.inPersonAvailable) return 'حضوری';
   if (course.onlineAvailable) return 'آنلاین';
+  if (course.oflineAvailable) return 'آفلاین';
   return 'در حال تکمیل';
 }
 
@@ -63,7 +65,7 @@ function getSessionDurationText(course: Course) {
   return `${toPersianDigits(course.sessionHours)} ساعت`;
 }
 
-function getOfferingByMode(course: Course, mode: 'in_person' | 'online'): CourseOffering | null {
+function getOfferingByMode(course: Course, mode: 'in_person' | 'online' |'ofline'): CourseOffering | null {
   if (!course.courseOfferings?.length) return null;
   return (
     course.courseOfferings
@@ -73,7 +75,7 @@ function getOfferingByMode(course: Course, mode: 'in_person' | 'online'): Course
   );
 }
 
-function getBestOffering(course: Course, primaryMode: 'in_person' | 'online') {
+function getBestOffering(course: Course, primaryMode: 'in_person' | 'online' | 'ofline') {
   const primary = getOfferingByMode(course, primaryMode);
   if (primary) return primary;
 
@@ -164,6 +166,12 @@ export default function CourseRow({ course, index, onRegisterClick }: CourseRowP
               <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-white/90 px-2 py-1 text-[10px] font-semibold text-slate-800 shadow-sm backdrop-blur">
                 <Monitor className="h-3 w-3 text-violet-600" />
                 آنلاین
+              </span>
+            )}
+            {course.oflineAvailable && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-white/90 px-2 py-1 text-[10px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                <Monitor className="h-3 w-3 text-slate-600" />
+                آفلاین
               </span>
             )}
           </div>

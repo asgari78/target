@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { animate, motion } from 'framer-motion';
-import { AlertTriangle, BookOpen, GraduationCap, HandMetal, RotateCcw, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, BookOpen, GraduationCap, HandMetal, RotateCcw, Users } from 'lucide-react';
 
 export type StatItem = {
   id: 'acceptance' | 'students' | 'courses';
@@ -16,8 +16,7 @@ export type StatItem = {
   bgColor: string;
 };
 
-// پالت رنگی منطبق بر هویت بصری تارگت:
-// سبز زمردی (#009966) - طلایی (#E6A801) - سرمه‌ای/ایندیگو تیره (#111B2F)
+// پالت رنگی منطبق بر هویت بصری تارگت
 const FALLBACK_STATS: StatItem[] = [
   {
     id: 'students',
@@ -36,8 +35,8 @@ const FALLBACK_STATS: StatItem[] = [
     prefix: '+',
     suffix: '٪',
     icon: GraduationCap,
-    color: '#E6A801',
-    gradient: ['#F7BE22', '#E6A801'],
+    color: '#9d7812',
+    gradient: ['#d1a11c', '#9d7812'],
     bgColor: 'rgba(230, 168, 1, 0.14)',
   },
   {
@@ -68,7 +67,6 @@ function toPersianDigits(value: number | string): string {
   return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] || d);
 }
 
-// کامپوننت اختصاصی برای شمارنده عددی روان با شتاب نرم
 function AnimatedNumber({
   value,
   duration = 2,
@@ -105,15 +103,15 @@ interface MultiRingChartProps {
 
 function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChartProps) {
   const filterId = useId();
-  const size = 320;
+  // ابعاد مینیمال و ظریف‌تر
+  const size = 200;
   const center = size / 2;
-  const strokeWidth = 14;
-  const gap = 11;
+  const strokeWidth = 3;
+  const gap = 8.5;
 
-  // محاسبه ابعاد و محیط حلقه‌ها
   const ringConfigs = useMemo(() => {
     return stats.map((stat, index) => {
-      const radius = center - strokeWidth / 2 - index * (strokeWidth + gap) - 10;
+      const radius = center - strokeWidth / 2 - index * (strokeWidth + gap) - 8;
       const circumference = 2 * Math.PI * radius;
       return {
         ...stat,
@@ -127,9 +125,9 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
   const activeStat = stats.find((s) => s.id === activeId) || stats[0];
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-1 sm:p-2 select-none w-full">
-      {/* سگمنت‌بار اپلیکیشنی در موبایل برای سوییچ فوق‌العاده سریع و واضح بین آمارها */}
-      <div className="flex md:hidden w-full max-w-[310px] items-center justify-between rounded-2xl bg-[#111B2F]/5 p-1 mb-3 border border-[#111B2F]/10">
+    <div className="relative flex flex-col items-center justify-center p-1 select-none w-full">
+      {/* سگمنت‌بار اپلیکیشنی در موبایل */}
+      <div className="flex md:hidden w-full max-w-[280px] items-center justify-between rounded-xl bg-[#111B2F]/5 p-0.5 mb-2.5">
         {stats.map((item) => {
           const isSelected = activeStat.id === item.id;
           const Icon = item.icon;
@@ -139,7 +137,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
               key={`pill-${item.id}`}
               type="button"
               onClick={() => onSelectItem(item.id)}
-              className="relative flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all"
+              className="relative flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg text-xs font-bold transition-all"
               style={{
                 color: isSelected ? item.color : '#64748B',
               }}
@@ -147,13 +145,13 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
               {isSelected && (
                 <motion.div
                   layoutId="activeStatTabPill"
-                  className="absolute inset-0 rounded-xl bg-white shadow-xs ring-1 ring-black/5"
+                  className="absolute inset-0 rounded-lg bg-white shadow-xs ring-1 ring-black/5"
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
                 />
               )}
               <span className="relative z-10 flex items-center gap-1 truncate">
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span className="text-[11px] truncate">{item.label.split(' ')[0]}</span>
+                <Icon className="h-3 w-3 shrink-0" />
+                <span className="text-[10px] truncate">{item.label.split(' ')[0]}</span>
               </span>
             </button>
           );
@@ -164,7 +162,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
         <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full transform -rotate-90">
           <defs>
             <filter id={`glow-${filterId}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.22" />
+              <feDropShadow dx="0" dy="1.5" stdDeviation="3" floodOpacity="0.2" />
             </filter>
 
             {ringConfigs.map((ring) => (
@@ -212,7 +210,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
                 r={ring.radius}
                 fill="none"
                 stroke={`url(#grad-${filterId}-${ring.id})`}
-                strokeWidth={isHovered ? strokeWidth + 3 : strokeWidth}
+                strokeWidth={isHovered ? strokeWidth + 2 : strokeWidth}
                 strokeLinecap="round"
                 strokeDasharray={ring.circumference}
                 style={{
@@ -223,7 +221,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
                 animate={{
                   strokeDashoffset: start ? ring.strokeDashoffset : ring.circumference,
                   opacity: isMuted ? 0.3 : 1,
-                  scale: isHovered ? 1.018 : 1,
+                  scale: isHovered ? 1.015 : 1,
                 }}
                 transition={{
                   strokeDashoffset: {
@@ -238,7 +236,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
             );
           })}
 
-          {/* نوار لمسی نامرئی و فوق‌العاده عریض (۳۶ پیکسل) جهت تضمین تاچ بدون خطا روی گوشی */}
+          {/* نوار لمسی */}
           {ringConfigs.map((ring) => (
             <circle
               key={`touch-${ring.id}`}
@@ -247,7 +245,7 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
               r={ring.radius}
               fill="none"
               stroke="transparent"
-              strokeWidth={36}
+              strokeWidth={28}
               strokeLinecap="round"
               strokeDasharray={ring.circumference}
               strokeDashoffset={ring.circumference * (1 - 0.78)}
@@ -261,30 +259,30 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
           ))}
         </svg>
 
-        {/* مرکز دایره: نمایشگر داینامیک آمار فعال */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-6 text-center">
+        {/* مرکز دایره: نمایشگر داینامیک */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4 text-center">
           <motion.div
             key={activeStat.id}
-            initial={{ scale: 0.85, opacity: 0, y: 6 }}
+            initial={{ scale: 0.88, opacity: 0, y: 4 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.85, opacity: 0, y: -6 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="flex flex-col items-center justify-center gap-1"
+            exit={{ scale: 0.88, opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="flex flex-col items-center justify-center gap-0.5"
           >
             <div
-              className="flex h-11 w-11 items-center justify-center rounded-2xl mb-1 shadow-xs transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl mb-0.5 shadow-xs transition-colors"
               style={{ backgroundColor: activeStat.bgColor, color: activeStat.color }}
             >
-              <activeStat.icon className="h-5 w-5" />
+              <activeStat.icon className="h-4 w-4" />
             </div>
 
-            <div className="flex items-baseline gap-1 text-[#111B2F]">
+            <div className="flex items-baseline gap-0.5 text-[#111B2F]">
               {activeStat.prefix && (
-                <span className="text-xl sm:text-2xl font-black" style={{ color: activeStat.color }}>
+                <span className="text-base sm:text-lg font-black" style={{ color: activeStat.color }}>
                   {activeStat.prefix}
                 </span>
               )}
-              <span className="text-3xl sm:text-4xl font-black tracking-tight text-[#111B2F]">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-[#111B2F]">
                 {start ? (
                   <AnimatedNumber value={activeStat.target} duration={1.6} delay={0.15} />
                 ) : (
@@ -292,20 +290,20 @@ function MultiRingChart({ stats, start, activeId, onSelectItem }: MultiRingChart
                 )}
               </span>
               {activeStat.suffix && (
-                <span className="text-xl font-bold text-slate-700">{activeStat.suffix}</span>
+                <span className="text-base font-bold text-slate-700">{activeStat.suffix}</span>
               )}
             </div>
 
-            <span className="text-xs sm:text-sm font-bold text-slate-600 max-w-[145px] leading-tight">
+            <span className="text-[7px] sm:text-xs font-bold text-slate-600 max-w-[130px] leading-tight">
               {activeStat.label}
             </span>
           </motion.div>
         </div>
       </div>
 
-      {/* راهنمای ترغیب به لمس مخصوص نسخه موبایل */}
-      <div className="flex md:hidden items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full animate-bounce">
-        <HandMetal className="h-3.5 w-3.5 text-[#E6A801]" />
+      {/* راهنمای ترغیب به لمس موبایل */}
+      <div className="flex md:hidden items-center gap-1 mt-2 text-[10px] font-bold text-slate-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full animate-bounce">
+        <HandMetal className="h-3 w-3 text-[#9d7812]" />
         <span>روی هر نوار یا دکمه لمس کنید</span>
       </div>
     </div>
@@ -329,62 +327,62 @@ function StatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: 0.15 + index * 0.1, ease: 'easeOut' }}
+      transition={{ duration: 0.35, delay: 0.12 + index * 0.08, ease: 'easeOut' }}
       onMouseEnter={() => onHover(stat.id)}
       onMouseLeave={() => onHover(null)}
-      className={`relative cursor-pointer overflow-hidden rounded-3xl border p-4.5 sm:p-5 transition-all duration-300 ${
+      className={`relative cursor-pointer overflow-hidden rounded-2xl p-3 sm:p-3.5 transition-all duration-300 ${
         isActive
-          ? 'border-slate-300 bg-white shadow-xl ring-2 -translate-y-1'
-          : 'border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:border-slate-200 hover:shadow-md'
+          ? 'border-slate-200 bg-white/50 shadow-lg ring-2 -translate-y-0.5'
+          : 'border-slate-100 bg-white/20 backdrop-blur-sm shadow-xs hover:border-slate-200 hover:shadow-sm'
       }`}
       style={{
         outlineColor: isActive ? stat.color : 'transparent',
       }}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-xs transition-transform duration-300"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-xs transition-transform duration-300"
             style={{ backgroundColor: stat.bgColor, color: stat.color }}
           >
-            <Icon className="h-6 w-6" />
+            <Icon className="h-5 w-5" />
           </div>
 
           <div>
-            <span className="block text-xs font-semibold text-slate-500">{stat.label}</span>
-            <div className="mt-1 flex items-baseline gap-1 text-[#111B2F]">
+            <span className="block text-[11px] font-semibold text-slate-500">{stat.label}</span>
+            <div className="mt-0.5 flex items-baseline gap-1 text-[#111B2F]">
               {stat.prefix && (
-                <span className="text-base font-black" style={{ color: stat.color }}>
+                <span className="text-sm font-black" style={{ color: stat.color }}>
                   {stat.prefix}
                 </span>
               )}
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-[#111B2F]">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-[#111B2F]">
                 {start ? (
                   <AnimatedNumber value={stat.target} duration={1.8} delay={0.25 + index * 0.15} />
                 ) : (
                   '۰'
                 )}
               </span>
-              {stat.suffix && <span className="text-sm font-bold text-slate-600">{stat.suffix}</span>}
+              {stat.suffix && <span className="text-xs font-bold text-slate-600">{stat.suffix}</span>}
             </div>
           </div>
         </div>
 
         {/* نشانگر رنگی رینگ مربوطه */}
         <div
-          className="h-2.5 w-2.5 rounded-full ring-4 shadow-sm"
+          className="h-2 w-2 rounded-full ring-2 shadow-xs"
           style={{
             backgroundColor: stat.color,
-            boxShadow: `0 0 10px ${stat.color}`,
+            boxShadow: `0 0 8px ${stat.color}`,
           }}
         />
       </div>
 
       {/* نوار پیشرفت زیر کارت */}
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100">
         <motion.div
           className="h-full rounded-full"
           style={{
@@ -448,52 +446,52 @@ export default function StatsSection() {
       id="stats"
       dir="rtl"
       aria-labelledby="stats-heading"
-      className="relative z-10 mt-4 py-4 md:mt-6 md:py-8 overflow-hidden"
+      className="relative z-10 mt-3 py-3 md:mt-4 md:py-6 overflow-hidden"
     >
-      <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
-        {/* Header - کاملاً همسان‌سازی شده با تم AboutSection */}
+      <div className="mx-auto w-full max-w-6xl px-3 sm:px-4 lg:px-6">
+        {/* Header */}
         <motion.header
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="mb-6 md:mb-8"
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="mb-4 md:mb-6"
         >
           <h2 id="stats-heading" className="flex flex-col items-start gap-1 text-right">
             <span
               style={{ fontFamily: 'DigiLalezarPlus, sans-serif' }}
-              className="inline-flex items-center gap-2 text-xl leading-tight text-slate-900 sm:text-2xl md:text-4xl"
+              className="inline-flex items-center gap-1.5 text-lg leading-tight text-slate-900 sm:text-xl md:text-3xl"
             >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-amber-300 shadow-sm md:h-10 md:w-10">
-                <GraduationCap className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-amber-300 shadow-xs md:h-8 md:w-8">
+                <GraduationCap className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </span>
               شاخص‌های موفقیت آکادمی تارگت
             </span>
 
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 sm:text-xs md:text-sm">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 sm:text-xs">
               رشد واقعی با آموزش تخصصی و آزمون‌های هوش و خلاقیت
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
             </span>
           </h2>
 
-          <span className="mt-2 block h-1 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-36 md:w-52" />
+          <span className="mt-1.5 block h-0.5 w-full rounded-full bg-linear-to-l from-slate-900 via-amber-500 sm:w-32 md:w-44" />
         </motion.header>
 
         {/* Error View */}
         {error && (
-          <div className="rounded-3xl border border-red-200 bg-red-50/90 p-6 text-center shadow-sm max-w-lg mx-auto">
-            <div className="mb-2 flex items-center justify-center gap-2 text-red-700">
-              <AlertTriangle className="h-5 w-5" />
-              <p className="text-sm font-bold md:text-base">خطا در دریافت آمار</p>
+          <div className="rounded-2xl border border-red-200 bg-red-50/90 p-5 text-center shadow-xs max-w-md mx-auto">
+            <div className="mb-1.5 flex items-center justify-center gap-1.5 text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              <p className="text-xs font-bold md:text-sm">خطا در دریافت آمار</p>
             </div>
-            <p className="text-xs text-red-600 md:text-sm">{error}</p>
+            <p className="text-[11px] text-red-600 md:text-xs">{error}</p>
 
             <button
               type="button"
               onClick={loadStats}
-              className="mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-700"
+              className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
               تلاش مجدد
             </button>
           </div>
@@ -501,13 +499,13 @@ export default function StatsSection() {
 
         {/* Loading Skeleton */}
         {loading && !error && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center rounded-3xl border border-slate-100 bg-white/50 p-6 sm:p-10 shadow-xs">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-2xl border border-slate-100 bg-white/50 p-5 sm:p-7 shadow-xs">
             <div className="lg:col-span-5 flex justify-center">
-              <div className="h-64 w-64 rounded-full border-8 border-slate-100 animate-pulse" />
+              <div className="h-52 w-52 rounded-full border-6 border-slate-100 animate-pulse" />
             </div>
-            <div className="lg:col-span-7 flex flex-col gap-4">
+            <div className="lg:col-span-7 flex flex-col gap-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 rounded-3xl bg-slate-100 animate-pulse" />
+                <div key={i} className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
               ))}
             </div>
           </div>
@@ -515,8 +513,8 @@ export default function StatsSection() {
 
         {/* Dashboard Presentation: Rings + Cards */}
         {!loading && !error && stats.length > 0 && (
-          <div className="relative rounded-3xl border border-slate-200/70 bg-linear-to-b from-white to-slate-50/80 backdrop-blur-md p-5 sm:p-8 md:p-10 shadow-xl">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
+          <div className="relative rounded-2xl bg-linear-to-b from-white/20 to-slate-50/5 backdrop-blur-xs p-4 sm:p-6 md:p-7 shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-8 items-center">
               {/* بخش نمودار دایره‌ای */}
               <div className="md:col-span-5 flex flex-col items-center justify-center">
                 <MultiRingChart
@@ -525,13 +523,13 @@ export default function StatsSection() {
                   activeId={activeHoverId}
                   onSelectItem={setActiveHoverId}
                 />
-                <span className="hidden md:block text-[11px] text-slate-400 mt-2 text-center font-medium">
+                <span className="hidden md:block text-[10px] text-slate-400 mt-1.5 text-center font-medium">
                   برای مشاهده جزئیات، روی حلقه‌ها یا کارت‌ها بروید
                 </span>
               </div>
 
-              {/* کارت‌های شاخص‌های سه‌گانه (نمایش فقط در سایز md به بالا مطابق خواسته) */}
-              <div className="md:col-span-7 hidden md:flex flex-col gap-3.5 sm:gap-4.5 justify-center">
+              {/* کارت‌های شاخص‌های سه‌گانه */}
+              <div className="md:col-span-7 hidden md:flex flex-col gap-2.5 sm:gap-3 justify-center">
                 {stats.map((item, index) => (
                   <StatCard
                     key={item.id}
